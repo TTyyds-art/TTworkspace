@@ -47,13 +47,16 @@ static QueueHandle_t relayQueue = nullptr;
 #define PN532_SCL 22
 Adafruit_PN532 nfc(PN532_SDA, PN532_SCL);
 
-// ===== 两个编码器 A 相引脚 =====
-const int ENC1_A_PIN = 32;   // 电机1 编码器A
-const int ENC2_A_PIN = 33;   // 电机2 编码器A
+// ===== 碎冰接近开关 + 螺旋杆霍尔编码器 =====
+// 碎冰：接近开关，NPN 常开，检测到金属时输出拉低（低电平有效）
+// 螺旋杆：霍尔编码器，输出脉冲（上升沿有效）
+// 接线建议：棕=VCC(3.3V/5V 视模块)，蓝=GND，黑=信号 -> MCU 输入（建议外部上拉）
+const int ENC1_A_PIN = 32;   // 碎冰电机接近开关信号（低电平有效）
+const int ENC2_A_PIN = 33;   // 螺旋杆霍尔编码器信号（上升沿有效）
 
-// ===== PATCH: 新增搅动电机光电编码器（GPIO35，输入专用口，无内部上拉） =====
-// 传感器特性：NPN常闭，检测到金属时输出拉低（低电平有效）
-const int STIR_ENC_PIN = 35; // 搅动电机光电传感器信号
+// ===== 搅动电机接近式开关（GPIO35，输入专用口，无内部上拉） =====
+// 传感器特性：NPN 常开，检测到金属时输出拉低（低电平有效）
+const int STIR_ENC_PIN = 35; // 搅动电机接近式开关信号
 
 // 检测时间窗口（毫秒）
 const unsigned long CHECK_INTERVAL_MS = 100;
@@ -75,6 +78,12 @@ volatile uint32_t stirLastPulseUs = 0;
 volatile long encoderTotal1 = 0;
 volatile long encoderTotal2 = 0;
 volatile long stirEncoderTotal = 0;
+
+// ===== 接近开关软防抖（避免毛刺） =====
+static constexpr uint32_t CRUSH_MIN_PULSE_INTERVAL_US = 20000; // 20ms
+static constexpr uint32_t AUGER_MIN_PULSE_INTERVAL_US = 20000; // 20ms
+volatile uint32_t crushLastPulseUs = 0;
+volatile uint32_t augerLastPulseUs = 0;
 
 
 enum SugarDir : uint8_t { SUGAR_OFF=0, SUGAR_FWD=1, SUGAR_REV=2 };
@@ -1049,19 +1058,29 @@ void resetAllToInitialState() {
   for (int i=0;i<7;++i){ uid[i]=0; lastUid[i]=0; }
 }
 
-// 电机1 A 相中断
+// 碎冰接近开关中断（低电平有效）
 void IRAM_ATTR encoder1ISR() {
+  const uint32_t nowUs = micros();
+  if (nowUs - crushLastPulseUs < CRUSH_MIN_PULSE_INTERVAL_US) {
+    return; // 软防抖：忽略毛刺/抖动
+  }
+  crushLastPulseUs = nowUs;
   encoderCount1++;
   encoderTotal1++;
 }
 
-// 电机2 A 相中断
+// 螺旋杆霍尔编码器中断（上升沿有效）
 void IRAM_ATTR encoder2ISR() {
+  const uint32_t nowUs = micros();
+  if (nowUs - augerLastPulseUs < AUGER_MIN_PULSE_INTERVAL_US) {
+    return; // 软防抖：忽略毛刺/抖动
+  }
+  augerLastPulseUs = nowUs;
   encoderCount2++;
   encoderTotal2++;
 }
 
-// PATCH: 搅动电机光电编码器 ISR（GPIO35，低电平有效）
+// 搅动电机接近式开关 ISR（GPIO35，低电平有效）
 void IRAM_ATTR stirEncoderISR() {
   const uint32_t nowUs = micros();
   if (nowUs - stirLastPulseUs < STIR_MIN_PULSE_INTERVAL_US) {
@@ -2404,16 +2423,15 @@ void setup() {
   // Serial.println(WiFi.macAddress());
 
   
-  pinMode(ENC1_A_PIN, INPUT_PULLUP);  // 根据实际硬件可改为 INPUT
+  pinMode(ENC1_A_PIN, INPUT_PULLUP);  // 接近开关信号（低电平有效），需外部上拉更稳
   pinMode(ENC2_A_PIN, INPUT_PULLUP);
 
   // PATCH: 搅动电机光电传感器（GPIO35 无内部上拉，需外部上拉/开漏等硬件保证）
   pinMode(STIR_ENC_PIN, INPUT_PULLUP);
 
-//霍尔编码器
-  attachInterrupt(digitalPinToInterrupt(ENC1_A_PIN), encoder1ISR, RISING);
+// 碎冰接近开关（低电平有效） + 螺旋杆霍尔编码器（上升沿有效）
+  attachInterrupt(digitalPinToInterrupt(ENC1_A_PIN), encoder1ISR, FALLING);
   attachInterrupt(digitalPinToInterrupt(ENC2_A_PIN), encoder2ISR, RISING);
-  // 低电平有效：使用 FALLING 触发
   attachInterrupt(digitalPinToInterrupt(STIR_ENC_PIN), stirEncoderISR, FALLING);
 
   // ===== PATCH: 三模块独立状态机绑定（含卡死检测/反转解卡/RPM打印） =====
@@ -2490,6 +2508,18 @@ void loop() {
   //   }
   // }
   const uint32_t now = millis();
+
+  // ===== DEBUG: 光电传感器电平打印（低=0，高=1） =====
+  // 仅用于验证电平逻辑，避免在 ISR 中打印。
+  static uint32_t lastStirPrintMs = 0;
+  static int lastStirLevel = -1;
+  const uint32_t STIR_PRINT_INTERVAL_MS = 100;
+  const int stirLevel = digitalRead(STIR_ENC_PIN);
+  if (stirLevel != lastStirLevel || (now - lastStirPrintMs) >= STIR_PRINT_INTERVAL_MS) {
+    Serial.println(stirLevel == LOW ? "0" : "1");
+    lastStirLevel = stirLevel;
+    lastStirPrintMs = now;
+  }
   const bool hasIceIdle = (Weights[1] > 1000);
   const bool allInactiveNow = allMotorsInactive;
   if (allInactiveNow && idleWasActive) {
