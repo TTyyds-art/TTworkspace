@@ -1,0 +1,59 @@
+[
+  {
+    "ID": "002",
+    "Name": "柠檬红茶",
+    "Base Price": 15,
+    "Sweetness Options": "常规,五分糖,三分糖",
+    "Temperature Options": "少冰,正常冰,常温",
+    "Size Options": "中杯,大杯",
+    "Add-ons": "脆啵啵,芋圆,珍珠,椰果,果冻",
+    "Price Calculation": "Final Price = Base Price * Size Factor + Add-ons Price",
+    "cup": "成品杯",
+    "Image": "柠檬红茶.png",
+    "Recipe": "冰220 碎冰220 红茶100 水150 果糖15 果蜜20",
+    "tips": "请均匀摇晃三下！请均匀摇晃三下！请均匀摇晃三下！请均匀摇晃三下！请均匀摇晃三下！请均匀摇晃三下！请均匀摇晃三下！请均匀摇晃三下！请均匀摇晃三下！请均匀摇晃三下！请均匀摇晃三下！请均匀摇晃三下！请均匀摇晃三下！"
+  },
+  {
+    "ID": "003",
+    "Name": "柠檬绿茶",
+    "Base Price": 15,
+    "Sweetness Options": "常规,五分糖,三分糖",
+    "Temperature Options": "少冰,正常冰,常温",
+    "Size Options": "中杯,大杯",
+    "Add-ons": "脆啵啵,芋圆,珍珠,椰果,果冻",
+    "Price Calculation": "Final Price = Base Price * Size Factor + Add-ons Price",
+    "cup": "雪克杯",
+    "Image": "柠檬绿茶.png",
+    "Recipe": "冰220 碎冰220 绿茶100 水150 果糖15 果蜜20",
+    "tips": "tips2"
+  },
+  {
+    "ID": "005",
+    "Name": "黄桃果霸",
+    "Base Price": 20,
+    "Sweetness Options": "常规,五分糖,三分糖",
+    "Temperature Options": "少冰,正常冰,常温",
+    "Size Options": "中杯,大杯",
+    "Add-ons": "脆啵啵,芋圆,珍珠,椰果,果冻",
+    "Price Calculation": "Final Price = Base Price * Size Factor + Add-ons Price",
+    "cup": "沙冰杯",
+    "Image": "黄桃果霸.png",
+    "Recipe": "冰120 碎冰120 黄桃果酱120 果糖30 红茶190 水80",
+    "ingredients": "B050",
+    "tips": "tips3"
+  },
+  {
+    "ID": "008",
+    "Name": "冰鲜柠檬水",
+    "Base Price": 20,
+    "Sweetness Options": "常规,五分糖,三分糖",
+    "Temperature Options": "少冰,正常冰,常温",
+    "Size Options": "中杯,大杯",
+    "Add-ons": "脆啵啵,芋圆,珍珠,椰果,果冻",
+    "Price Calculation": "Final Price = Base Price * Size Factor + Add-ons Price",
+    "cup": "沙冰杯",
+    "Image": "冰鲜柠檬水.png",
+    "Recipe": "水250 果蜜30 冰250 碎冰250",
+    "tips": "tips4"
+  }
+]

@@ -1,0 +1,132 @@
+[
+  {
+    "menu_id": "001",
+    "name": "柠檬红茶",
+    "base_price": 15,
+    "image": "柠檬红茶.png",
+    "cup": "成品杯",
+    "base_recipe_id": "R001",
+    "tips": "记得摇晃3下记得摇晃3下",
+    "enabled": true
+  },
+  {
+    "menu_id": "002",
+    "name": "柠檬绿茶",
+    "base_price": 15,
+    "image": "柠檬绿茶.png",
+    "cup": "雪克杯",
+    "base_recipe_id": "R002",
+    "tips": "记得摇晃3下",
+    "enabled": true
+  },
+  {
+    "menu_id": "003",
+    "name": "黄桃果霸",
+    "base_price": 20,
+    "image": "黄桃果霸.png",
+    "cup": "沙冰杯",
+    "base_recipe_id": "R003",
+    "tips": "记得摇晃3下",
+    "enabled": true
+  },
+  {
+    "menu_id": "004",
+    "name": "葡萄肉多多",
+    "base_price": 20,
+    "image": "葡萄肉多多.png",
+    "cup": "沙冰杯",
+    "base_recipe_id": "R004",
+    "tips": "记得摇晃3下",
+    "enabled": true
+  },
+  {
+    "menu_id": "005",
+    "name": "冰鲜柠檬水",
+    "base_price": 15,
+    "image": "冰鲜柠檬水.png",
+    "cup": "雪克杯",
+    "base_recipe_id": "R005",
+    "tips": "记得摇晃3下",
+    "enabled": true
+  },
+  {
+    "menu_id": "006",
+    "name": "棒打鲜橙",
+    "base_price": 15,
+    "image": "棒打鲜橙.png",
+    "cup": "雪克杯",
+    "base_recipe_id": "R006",
+    "tips": "记得摇晃3下",
+    "enabled": true
+  },
+  {
+    "menu_id": "007",
+    "name": "蜜桃四季春",
+    "base_price": 15,
+    "image": "蜜桃四季春.png",
+    "cup": "雪克杯",
+    "base_recipe_id": "R007",
+    "tips": "记得摇晃3下",
+    "enabled": true
+  },
+  {
+    "menu_id": "008",
+    "name": "桃之夭夭",
+    "base_price": 15,
+    "image": "桃之夭夭.png",
+    "cup": "雪克杯",
+    "base_recipe_id": "R008",
+    "tips": "记得摇晃3下",
+    "enabled": true
+  },
+  {
+    "menu_id": "009",
+    "name": "杨枝甘露",
+    "base_price": 20,
+    "image": "杨枝甘露.png",
+    "cup": "沙冰杯",
+    "base_recipe_id": "R009",
+    "tips": "记得摇晃3下",
+    "enabled": true
+  },
+  {
+    "menu_id": "010",
+    "name": "大王奇异果",
+    "base_price": 21,
+    "image": "大王奇异果.png",
+    "cup": "沙冰杯",
+    "base_recipe_id": "R010",
+    "tips": "记得摇晃3下",
+    "enabled": true
+  },
+  {
+    "menu_id": "011",
+    "name": "草莓奶昔",
+    "base_price": 20,
+    "image": "草莓奶昔.png",
+    "cup": "沙冰杯",
+    "base_recipe_id": "R011",
+    "tips": "记得摇晃3下",
+    "enabled": true
+  },
+  {
+    "menu_id": "012",
+    "name": "葡萄奶绿",
+    "base_price": 15,
+    "image": "葡萄奶绿.png",
+    "cup": "雪克杯",
+    "base_recipe_id": "R012",
+    "tips": "记得摇晃3下",
+    "enabled": true
+  },
+  {
+    "menu_id": "013",
+    "name": "蓝莓奶绿",
+    "base_price": 15,
+    "image": "蓝莓奶绿.png",
+    "cup": "雪克杯",
+    "base_recipe_id": "R013",
+    "tips": "记得摇晃3下",
+    "enabled": true
+  }
+]

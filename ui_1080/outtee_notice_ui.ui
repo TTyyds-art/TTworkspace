@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>584</width>
+    <height>943</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>584</width>
+    <height>943</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>584</width>
+    <height>943</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QWidget#Form{
+	background-color:white;
+	border-radius:10px;
+}</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QScrollArea" name="scrollArea">
+     <property name="styleSheet">
+      <string notr="true">QScrollBar{
+	background-color:black;
+}
+QScrollBar:horizontal {
+    background-color: white;
+    height: 9px;
+	padding-right: 1px;
+}
+
+QScrollBar:vertical {
+    background-color: rgb(187, 242, 212);
+    width: 10px;
+	padding-bottom: 0px;	
+	padding-top: 0px;
+}
+QScrollBar::groove {
+    background: rgb(82, 83, 86);
+    border-radius: 5px;
+}
+
+QScrollBar::handle {
+    background: blue;
+    border-radius: 5px;
+}
+
+QScrollBar::handle:horizontal {
+    border:1px solid rgb(42, 47, 85);
+    border-radius: 3px;
+    background-color: rgb(82, 83, 86);
+}
+QScrollBar::handle:horizontal:hover {
+	background-color:rgb(82, 83, 86);
+}
+QScrollBar::handle:vertical {
+    border:1px solid rgb(44, 159, 97,0.3);
+    border-radius: 5px;
+    background-color: rgb(44, 159, 97,0.3);
+}
+QScrollBar::handle:vertical:hover {
+	background-color:rgb(58, 209, 126);
+}
+ QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical {
+            height: 0px;
+            subcontrol-origin: margin;
+        }</string>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <property name="widgetResizable">
+      <bool>true</bool>
+     </property>
+     <widget class="QWidget" name="content">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>582</width>
+        <height>941</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">QWidget#content{
+	background-color:white;
+	border-radius:10px;
+}</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QWidget" name="content_list_widget" native="true"/>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

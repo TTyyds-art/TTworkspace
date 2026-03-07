@@ -1,0 +1,223 @@
+[
+  {
+    "recipe_id": "R001",
+    "base_materials": "红茶100 水150 果蜜20",
+    "ice_base": 220,
+    "crushed_ice_base": 220,
+    "sugar_base": 15,
+    "ice_rule": {
+      "少冰": 0.5,
+      "正常冰": 1.0,
+      "常温": 0.0
+    },
+    "sugar_rule": {
+      "三分糖": 0.3,
+      "五分糖": 0.5,
+      "常规": 1.0
+    }
+  },
+  {
+    "recipe_id": "R002",
+    "base_materials": "绿茶100 水150 果蜜20",
+    "ice_base": 220,
+    "crushed_ice_base": 220,
+    "sugar_base": 15,
+    "ice_rule": {
+      "少冰": 0.5,
+      "正常冰": 1.0,
+      "常温": 0.0
+    },
+    "sugar_rule": {
+      "三分糖": 0.3,
+      "五分糖": 0.5,
+      "常规": 1.0
+    }
+  },
+  {
+    "recipe_id": "R003",
+    "base_materials": "黄桃果酱120 红茶190 水80",
+    "ice_base": 120,
+    "crushed_ice_base": 120,
+    "sugar_base": 30,
+    "ice_rule": {
+      "少冰": 0.5,
+      "正常冰": 1.0,
+      "常温": 0.0
+    },
+    "sugar_rule": {
+      "三分糖": 0.3,
+      "五分糖": 0.5,
+      "常规": 1.0
+    }
+  },
+  {
+    "recipe_id": "R004",
+    "base_materials": "葡萄果酱120 红茶190 水80",
+    "ice_base": 120,
+    "crushed_ice_base": 120,
+    "sugar_base": 30,
+    "ice_rule": {
+      "少冰": 0.5,
+      "正常冰": 1.0,
+      "常温": 0.0
+    },
+    "sugar_rule": {
+      "三分糖": 0.3,
+      "五分糖": 0.5,
+      "常规": 1.0
+    }
+  },
+  {
+    "recipe_id": "R005",
+    "base_materials": "柠檬汁30 水250",
+    "ice_base": 120,
+    "crushed_ice_base": 120,
+    "sugar_base": 20,
+    "ice_rule": {
+      "少冰": 0.5,
+      "正常冰": 1.0,
+      "常温": 0.0
+    },
+    "sugar_rule": {
+      "三分糖": 0.3,
+      "五分糖": 0.5,
+      "常规": 1.0
+    }
+  },
+  {
+    "recipe_id": "R006",
+    "base_materials": "橙汁30 水250",
+    "ice_base": 120,
+    "crushed_ice_base": 120,
+    "sugar_base": 20,
+    "ice_rule": {
+      "少冰": 0.5,
+      "正常冰": 1.0,
+      "常温": 0.0
+    },
+    "sugar_rule": {
+      "三分糖": 0.3,
+      "五分糖": 0.5,
+      "常规": 1.0
+    }
+  },
+  {
+    "recipe_id": "R007",
+    "base_materials": "四季春茶120 水120 蜜桃果酱40",
+    "ice_base": 220,
+    "crushed_ice_base": 220,
+    "sugar_base": 15,
+    "ice_rule": {
+      "少冰": 0.5,
+      "正常冰": 1.0,
+      "常温": 0.0
+    },
+    "sugar_rule": {
+      "三分糖": 0.3,
+      "五分糖": 0.5,
+      "常规": 1.0
+    }
+  },
+  {
+    "recipe_id": "R008",
+    "base_materials": "绿茶100 水120 蜜桃果酱35 果蜜20",
+    "ice_base": 200,
+    "crushed_ice_base": 200,
+    "sugar_base": 10,
+    "ice_rule": {
+      "少冰": 0.5,
+      "正常冰": 1.0,
+      "常温": 0.0
+    },
+    "sugar_rule": {
+      "三分糖": 0.3,
+      "五分糖": 0.5,
+      "常规": 1.0
+    }
+  },
+  {
+    "recipe_id": "R009",
+    "base_materials": "芒果果酱150 椰奶120 西柚粒60 水60",
+    "ice_base": 120,
+    "crushed_ice_base": 120,
+    "sugar_base": 20,
+    "ice_rule": {
+      "少冰": 0.5,
+      "正常冰": 1.0,
+      "常温": 0.0
+    },
+    "sugar_rule": {
+      "三分糖": 0.3,
+      "五分糖": 0.5,
+      "常规": 1.0
+    }
+  },
+  {
+    "recipe_id": "R010",
+    "base_materials": "奇异果果酱140 绿茶160 水80",
+    "ice_base": 120,
+    "crushed_ice_base": 120,
+    "sugar_base": 25,
+    "ice_rule": {
+      "少冰": 0.5,
+      "正常冰": 1.0,
+      "常温": 0.0
+    },
+    "sugar_rule": {
+      "三分糖": 0.3,
+      "五分糖": 0.5,
+      "常规": 1.0
+    }
+  },
+  {
+    "recipe_id": "R011",
+    "base_materials": "草莓果酱160 牛奶180",
+    "ice_base": 150,
+    "crushed_ice_base": 150,
+    "sugar_base": 20,
+    "ice_rule": {
+      "少冰": 0.5,
+      "正常冰": 1.0,
+      "常温": 0.0
+    },
+    "sugar_rule": {
+      "三分糖": 0.3,
+      "五分糖": 0.5,
+      "常规": 1.0
+    }
+  },
+  {
+    "recipe_id": "R012",
+    "base_materials": "绿茶100 水150 葡萄浆20",
+    "ice_base": 220,
+    "crushed_ice_base": 220,
+    "sugar_base": 15,
+    "ice_rule": {
+      "少冰": 0.5,
+      "正常冰": 1.0,
+      "常温": 0.0
+    },
+    "sugar_rule": {
+      "三分糖": 0.3,
+      "五分糖": 0.5,
+      "常规": 1.0
+    }
+  },
+  {
+    "recipe_id": "R013",
+    "base_materials": "绿茶100 水150 葡萄浆20",
+    "ice_base": 220,
+    "crushed_ice_base": 220,
+    "sugar_base": 15,
+    "ice_rule": {
+      "少冰": 0.5,
+      "正常冰": 1.0,
+      "常温": 0.0
+    },
+    "sugar_rule": {
+      "三分糖": 0.3,
+      "五分糖": 0.5,
+      "常规": 1.0
+    }
+  }
+]

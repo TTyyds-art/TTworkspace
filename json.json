@@ -1,0 +1,16 @@
+{
+  "status": "success",
+  "country": "日本",
+  "countryCode": "JP",
+  "region": "13",
+  "regionName": "东京都",
+  "city": "Shinagawa",
+  "zip": "140-0002",
+  "lat": 35.6191,
+  "lon": 139.751,
+  "timezone": "Asia/Tokyo",
+  "isp": "Cyberverse LLC",
+  "org": "",
+  "as": "AS216211 CYBERVERSE LLC",
+  "query": "195.172.136.31"
+}

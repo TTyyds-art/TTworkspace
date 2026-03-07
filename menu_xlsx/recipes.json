@@ -1,0 +1,17 @@
+[
+  {
+    "ID": "蓝莓奶绿",
+    "Name": "蓝莓奶绿",
+    "Base Price": 15,
+    "Sweetness Options": "常规,五分糖,三分糖",
+    "Temperature Options": "少冰,正常冰,常温",
+    "Size Options": "中杯,大杯",
+    "Add-ons": "芋圆,珍珠,椰果",
+    "Price Calculation": "Final Price = Base Price * Size Factor + Add-ons Price",
+    "cup": "雪克杯",
+    "Image": "蓝莓奶绿.png",
+    "Recipe": "冰200 碎冰200 绿茶100 奶150 果糖15 蓝莓酱15",
+    "tips": "tips3"
+  }
+]
+                                                                                                          
