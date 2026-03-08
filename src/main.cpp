@@ -1198,6 +1198,143 @@ void checkCrushedIceMotorStall() {
   else if (prevDir == DIR_REV) iceMotorReverse();
 }
 
+// ===== 新版：基于两路接近 + 一路霍尔的卡死检测（反转3s -> 正转3s，最多3遍，失败停机） =====
+static inline long readTotalSafe(volatile long* p) {
+  long v;
+  noInterrupts();
+  v = p ? *p : 0;
+  interrupts();
+  return v;
+}
+
+static void stopIceAllWithPopup(const char* tag) {
+  // 统一停机（冰机/搅冰/传送带）
+  iceMotorStop();
+  augerMotorStop();
+  stirMotorStop();
+  // 同步逻辑状态
+  stopMotor(IDX_CRUSHED);
+  stopMotor(IDX_ICE);
+  speed_judge = 0;
+  Serial.print("POPUP:");
+  Serial.println(tag);
+}
+
+struct StallRecover {
+  const char* tag = "M";
+  volatile long* total = nullptr;
+  uint8_t minPulses = 1;
+  uint8_t needWins  = 5;
+  uint32_t winMs    = 150;
+  uint32_t phaseMs  = 3000;
+  uint8_t maxCycles = 3;
+
+  long     lastTotal = 0;
+  uint32_t lastWinMs = 0;
+  uint8_t  noPulseWins = 0;
+
+  enum Phase : uint8_t { IDLE=0, REV=1, FWD=2 } phase = IDLE;
+  uint32_t phaseStartMs = 0;
+  long     phaseStartTotal = 0;
+  uint8_t  cycles = 0;
+};
+
+static StallRecover stallCrush;
+static StallRecover stallAuger;
+static StallRecover stallStir;
+
+static inline void stallReset(StallRecover& m) {
+  m.lastTotal = 0;
+  m.lastWinMs = 0;
+  m.noPulseWins = 0;
+  m.phase = StallRecover::IDLE;
+  m.phaseStartMs = 0;
+  m.phaseStartTotal = 0;
+  m.cycles = 0;
+}
+
+static inline void enterRev(StallRecover& m, uint32_t nowMs,
+                            void (*doRev)()) {
+  if (doRev) doRev();
+  m.phase = StallRecover::REV;
+  m.phaseStartMs = nowMs;
+  m.phaseStartTotal = readTotalSafe(m.total);
+}
+
+static inline void enterFwd(StallRecover& m, uint32_t nowMs,
+                            void (*doFwd)()) {
+  if (doFwd) doFwd();
+  m.phase = StallRecover::FWD;
+  m.phaseStartMs = nowMs;
+  m.phaseStartTotal = readTotalSafe(m.total);
+}
+
+static void handleStall(StallRecover& m, bool running, uint32_t nowMs,
+                        void (*doFwd)(), void (*doRev)()) {
+  if (!running) {
+    stallReset(m);
+    return;
+  }
+
+  // 处于脱困流程
+  if (m.phase != StallRecover::IDLE) {
+    if (nowMs - m.phaseStartMs >= m.phaseMs) {
+      if (m.phase == StallRecover::REV) {
+        enterFwd(m, nowMs, doFwd);
+      } else if (m.phase == StallRecover::FWD) {
+        const long cur = readTotalSafe(m.total);
+        const long dp = cur - m.phaseStartTotal;
+        if (dp >= m.minPulses) {
+          // 已恢复
+          stallReset(m);
+          return;
+        }
+        // 未恢复：进入下一轮
+        if (++m.cycles >= m.maxCycles) {
+          stopIceAllWithPopup("ICE_STALL");
+          stallReset(m);
+          return;
+        }
+        enterRev(m, nowMs, doRev);
+      }
+    }
+    return;
+  }
+
+  // 正常监测：窗口内无脉冲则计数
+  if (m.lastWinMs == 0) {
+    m.lastWinMs = nowMs;
+    m.lastTotal = readTotalSafe(m.total);
+    return;
+  }
+  if (nowMs - m.lastWinMs >= m.winMs) {
+    const long cur = readTotalSafe(m.total);
+    const long dp = cur - m.lastTotal;
+    m.lastTotal = cur;
+    m.lastWinMs = nowMs;
+    if (dp >= m.minPulses) {
+      m.noPulseWins = 0;
+      return;
+    }
+    if (++m.noPulseWins >= m.needWins) {
+      m.noPulseWins = 0;
+      m.cycles = 0;
+      enterRev(m, nowMs, doRev);
+    }
+  }
+}
+
+static void checkIceStallRecoveryNew() {
+  const uint32_t nowMs = millis();
+  const bool crushRun = motorActive[IDX_CRUSHED];
+  const bool stirRun  = motorActive[IDX_ICE];
+  const bool augerRun = (motorActive[IDX_CRUSHED] || motorActive[IDX_ICE]);
+
+  handleStall(stallCrush, crushRun, nowMs, iceMotorForward,  iceMotorReverse);
+  handleStall(stallStir,  stirRun,  nowMs, stirMotorForward, stirMotorReverse);
+  handleStall(stallAuger, augerRun, nowMs, augerMotorForward, augerMotorReverse);
+}
+
 // 封装好的检测函数：在 loop() 里反复调用
 void checkMotorsMoving() {
   static unsigned long lastCheckTime = 0;
@@ -2445,6 +2582,31 @@ void setup() {
   fsmStir.bind ("STIR",  &stirEncoderTotal, PULSES_PER_REV_STIR,  stirMotorStop,  stirMotorForward,  stirMotorReverse);
   fsmStir.enableStall = true;
 
+  // ===== 新版卡死检测：监测源初始化 =====
+  stallCrush.tag = "ICE";
+  stallCrush.total = &encoderTotal1;
+  stallCrush.minPulses = 1;
+  stallCrush.needWins  = 5;
+  stallCrush.winMs     = 150;
+  stallCrush.phaseMs   = 3000;
+  stallCrush.maxCycles = 3;
+
+  stallAuger.tag = "AUG";
+  stallAuger.total = &encoderTotal2;
+  stallAuger.minPulses = 1;
+  stallAuger.needWins  = 5;
+  stallAuger.winMs     = 150;
+  stallAuger.phaseMs   = 3000;
+  stallAuger.maxCycles = 3;
+
+  stallStir.tag = "STIR";
+  stallStir.total = &stirEncoderTotal;
+  stallStir.minPulses = 1;
+  stallStir.needWins  = 5;
+  stallStir.winMs     = 150;
+  stallStir.phaseMs   = 3000;
+  stallStir.maxCycles = 3;
+
 
   xTaskCreatePinnedToCore(
     weightReadTask,     // 任务函数
@@ -2479,14 +2641,19 @@ static bool idleJamRunning = false;
 static uint32_t idleJamStartMs = 0;
 static bool idleWasActive = false;
 
+
 void loop() {
   // checkMotorsMoving();
+  // 新版卡死检测（两路接近+一路霍尔）
+  checkIceStallRecoveryNew();
   // if (millis() - lastPing >= PING_INTERVAL_MS) {
   //   lastPing = millis();
   //   sendHeartbeat();
   //   // 简单抖动
   //   delay(random(0, 2000));
   // }
+
+
   //空闲状态防堵操作
   // if(millis()-lastrun>=60000){
   //   if(allMotorsInactive&&Weights[1]>1000){
@@ -2509,17 +2676,6 @@ void loop() {
   // }
   const uint32_t now = millis();
 
-  // ===== DEBUG: 光电传感器电平打印（低=0，高=1） =====
-  // 仅用于验证电平逻辑，避免在 ISR 中打印。
-  static uint32_t lastStirPrintMs = 0;
-  static int lastStirLevel = -1;
-  const uint32_t STIR_PRINT_INTERVAL_MS = 100;
-  const int stirLevel = digitalRead(STIR_ENC_PIN);
-  if (stirLevel != lastStirLevel || (now - lastStirPrintMs) >= STIR_PRINT_INTERVAL_MS) {
-    Serial.println(stirLevel == LOW ? "0" : "1");
-    lastStirLevel = stirLevel;
-    lastStirPrintMs = now;
-  }
   const bool hasIceIdle = (Weights[1] > 1000);
   const bool allInactiveNow = allMotorsInactive;
   if (allInactiveNow && idleWasActive) {
