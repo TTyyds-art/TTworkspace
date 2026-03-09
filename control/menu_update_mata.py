@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                              QLineEdit, QLabel, QTextEdit, QFileDialog,
                              QMessageBox, QHeaderView, QComboBox, QScrollArea,
                              QDialog)
-from PyQt5.QtCore import pyqtSignal, QTimer
+from PyQt5.QtCore import pyqtSignal, QTimer, QCoreApplication
 from PyQt5.QtGui import QPixmap, QImage, QFontDatabase, QFont
 import qrcode
 from io import BytesIO
@@ -129,14 +129,14 @@ class QRUploadDialog(QDialog):
         self.drink_name = drink_name
         self.server = None
         self.port = 8899
-        self.setWindowTitle("扫码上传图片")
+        self.setWindowTitle(self._tr("扫码上传图片"))
         self.setFixedSize(400, 480)
         self._init_ui()
         self._start_server()
         self.upload_success.connect(self._show_success)
     
     def _show_success(self, filename):
-        self.status_label.setText(f"✓ 上传成功：{filename}")
+        self.status_label.setText(self._tr("✓ 上传成功：{filename}").format(filename=filename))
         self.status_label.setStyleSheet("font-size:14px;color:#28a745;font-weight:bold;")
     
     def _init_ui(self):
@@ -144,7 +144,7 @@ class QRUploadDialog(QDialog):
         layout.setSpacing(15)
         
         # 提示
-        tip = QLabel(f"请用手机扫码上传【{self.drink_name}】的图片")
+        tip = QLabel(self._tr("请用手机扫码上传【{name}】的图片").format(name=self.drink_name))
         tip.setStyleSheet("font-size:14px;color:#333;")
         tip.setWordWrap(True)
         layout.addWidget(tip)
@@ -156,16 +156,19 @@ class QRUploadDialog(QDialog):
         layout.addWidget(self.qr_label, alignment=QtCore.Qt.AlignCenter)
         
         # 状态
-        self.status_label = QLabel("等待上传...")
+        self.status_label = QLabel(self._tr("等待上传..."))
         self.status_label.setStyleSheet("font-size:13px;color:#666;")
         layout.addWidget(self.status_label, alignment=QtCore.Qt.AlignCenter)
         
         # 关闭按钮
-        btn_close = QPushButton("关闭")
+        btn_close = QPushButton(self._tr("关闭"))
         btn_close.setFixedSize(100, 36)
         btn_close.setStyleSheet("QPushButton{background:#53CB31;color:white;border-radius:6px;}")
         btn_close.clicked.connect(self.close)
         layout.addWidget(btn_close, alignment=QtCore.Qt.AlignCenter)
+
+    def _tr(self, text: str) -> str:
+        return QCoreApplication.translate("QRUploadDialog", text)
     
     def _start_server(self):
         ip = get_local_ip()
