@@ -1,6 +1,6 @@
 import sys
 import os
-from PyQt5.QtCore import Qt, pyqtSlot, QThread, QCoreApplication
+from PyQt5.QtCore import Qt, pyqtSlot, QThread
 from PyQt5.QtGui import QFontDatabase, QFont
 from PyQt5.QtWidgets import QWidget, QApplication, QGraphicsBlurEffect
 from threads.SerialThread import SerialThread
@@ -16,13 +16,7 @@ class MessageDialog(QWidget, Ui_Form):
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.init_font()
-        self.retranslate()
-
-    def retranslate(self):
-        self.warn_msg_l.setText(self._tr('输入的账号密码有误,请重新输入!'))
-
-    def _tr(self, text: str) -> str:
-        return QCoreApplication.translate("MessageDialog", text)
+        self.warn_msg_l.setText(f'输入的账号密码有误,请重新输入!')
 
 
     @pyqtSlot()

@@ -85,7 +85,7 @@ class Ui_Form(object):
         self.horizontalLayout_4.setContentsMargins(0, -1, -1, -1)
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_3.setContentsMargins(60, 85, -1, -1)
+        self.verticalLayout_3.setContentsMargins(30, 85, -1, -1)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.progressBar = QtWidgets.QProgressBar(self.widget_3)
         self.progressBar.setMinimumSize(QtCore.QSize(0, 40))
@@ -115,7 +115,7 @@ class Ui_Form(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.label_2.sizePolicy().hasHeightForWidth())
         self.label_2.setSizePolicy(sizePolicy)
-        self.label_2.setMinimumSize(QtCore.QSize(320, 182))
+        self.label_2.setMinimumSize(QtCore.QSize(244, 182))
         self.label_2.setStyleSheet("\n"
 "border-image: url(:/icon/order_dialog_no_touch.png);")
         self.label_2.setText("")

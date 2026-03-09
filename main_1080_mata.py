@@ -70,8 +70,6 @@ from threads.refresh_setting_loacl_message_thread import RefreshSettingLocalMess
 from threads.refresh_setting_loacl_tee_thread import RefreshSettingLocalTeeThread
 from tool_utils import util
 from ui_1080_py.Ui_main_1080_ui import Ui_Form
-from control.order_language_settings import OrderLanguageSettings
-from control.language_manager import LanguageManager
 from threads.SerialThread import SerialThread
 from threads.conduit_serial_thread import ConduitSerialThread
 # from threads.manager_second_screen_conduit_thread import ManagerSecondScreenConduit
@@ -1831,9 +1829,6 @@ class Main1080Window(QWidget, Ui_Form):
 
     def __init__(self, app, parent=None):
         super(Main1080Window, self).__init__(parent)
-        self._qt_app = app
-        self._translator = None
-        self._lang_manager = LanguageManager(app, QSettings("Xiliu", "Miketee"))
         print(sys.executable)  # 输出当前 Python 解释器路径
         self._zip4_map = self._load_zip4_map(_res_path("data/cn_zip4_map_big.csv"))
         self.camera_frame_ui = None
@@ -1848,7 +1843,6 @@ class Main1080Window(QWidget, Ui_Form):
         self.setting_conduit_gridLayout = None
         self.manager_main_conduit_thread = None
         self.second_screen_ui = None
-        self.language_settings_ui = None
         self.setting_local_message_page_Layout = None
         self.refresh_setting_local_message_thread = None
         self.setting_message_content_Layout = None
@@ -1902,8 +1896,6 @@ class Main1080Window(QWidget, Ui_Form):
         self.camera_data = []
 
         self.setupUi(self)
-        # 语言初始化（启动时自动加载上次语言）
-        self._lang_manager.load_on_startup()
         # self._brew_timer = QTimer(self); self._brew_timer.timeout.connect(self._on_brew_tick)
 
 
@@ -4932,8 +4924,6 @@ class Main1080Window(QWidget, Ui_Form):
                         self.login_ui.show()
             elif obj == self.wbtn_setting_second_screen:
                 self.stackedWidget_setting.setCurrentWidget(self.setting_conduit_content)
-            elif obj == self.wbtn_setting_second_screen_2:
-                self._show_language_settings_page()
             elif obj == self.on_off_setting_widget:
                 if self.is_login or self.is_debug:
                     self.open_second_screen_change(self.is_open_screen)
@@ -4976,28 +4966,6 @@ class Main1080Window(QWidget, Ui_Form):
             self.menu_add_cart_btn_add.setHidden(False)
             self.menu_add_cart_btn_icon.setStyleSheet('border: 1px solid red; border-radius: 20px; color:red;')
             self.menu_add_cart_btn_icon.setText(str(num))
-
-    def _show_language_settings_page(self):
-        if self.language_settings_ui is None:
-            self.language_settings_ui = OrderLanguageSettings(self)
-            self.language_settings_ui.back_to_setting.connect(self._back_from_language_settings)
-            self.language_settings_ui.language_apply.connect(self._apply_language)
-            self.language_settings_ui.destroyed.connect(
-                lambda *_: setattr(self, "language_settings_ui", None)
-            )
-        self.stackedWidget_setting.addWidget(self.language_settings_ui)
-        self.stackedWidget_setting.setCurrentWidget(self.language_settings_ui)
-
-    def _back_from_language_settings(self):
-        try:
-            self.stackedWidget_setting.setCurrentWidget(self.setting_home)
-        except Exception:
-            pass
-
-    def _apply_language(self, lang_code: str):
-        ok = self._lang_manager.set_language(lang_code)
-        if not ok:
-            print("[i18n] language load failed:", lang_code)
 
     def camera_image(self, image):
         resize_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
