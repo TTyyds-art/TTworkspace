@@ -48,15 +48,19 @@ static QueueHandle_t relayQueue = nullptr;
 Adafruit_PN532 nfc(PN532_SDA, PN532_SCL);
 
 // ===== 碎冰接近开关 + 螺旋杆霍尔编码器 =====
-// 碎冰：接近开关，NPN 常开，检测到金属时输出拉低（低电平有效）
+// 碎冰：接近开关，NPN 常闭，检测到金属时输出拉高（高电平有效）
 // 螺旋杆：霍尔编码器，输出脉冲（上升沿有效）
 // 接线建议：棕=VCC(3.3V/5V 视模块)，蓝=GND，黑=信号 -> MCU 输入（建议外部上拉）
-const int ENC1_A_PIN = 32;   // 碎冰电机接近开关信号（低电平有效）
+const int ENC1_A_PIN = 32;   // 碎冰电机接近开关信号（高电平有效）
 const int ENC2_A_PIN = 33;   // 螺旋杆霍尔编码器信号（上升沿有效）
 
 // ===== 搅动电机接近式开关（GPIO35，输入专用口，无内部上拉） =====
-// 传感器特性：NPN 常开，检测到金属时输出拉低（低电平有效）
+// 传感器特性：NPN 常闭，检测到金属时输出拉高（高电平有效）
 const int STIR_ENC_PIN = 35; // 搅动电机接近式开关信号
+
+// ===== 清洁主泵流量计（GPIO27，中断脉冲输入，上升沿有效） =====
+const int CLEAN_FLOW_PIN = 27; // 清洁主泵流量计信号
+static constexpr uint32_t CLEAN_FLOW_LOST_MS = 2000; // 连续无脉冲判定无流
 
 // 检测时间窗口（毫秒）
 const unsigned long CHECK_INTERVAL_MS = 100;
@@ -78,6 +82,12 @@ volatile uint32_t stirLastPulseUs = 0;
 volatile long encoderTotal1 = 0;
 volatile long encoderTotal2 = 0;
 volatile long stirEncoderTotal = 0;
+
+// ===== 清洁主泵流量计状态 =====
+volatile uint32_t cleanFlowPulseCount = 0;
+volatile uint32_t cleanFlowLastPulseMs = 0;
+static bool cleanFlowMonitorEnabled = false;
+static bool cleanFlowPopupSent = false;
 
 // ===== 接近开关软防抖（避免毛刺） =====
 static constexpr uint32_t CRUSH_MIN_PULSE_INTERVAL_US = 20000; // 20ms
@@ -704,12 +714,12 @@ const byte relayOffCmd_4[8][8] = {
 
 
 const byte CleanOnCmd[2][8]={
-  {0x03, 0x06, 0x00, 0x0C, 0x00, 0x01, 0x89, 0xEB },
-  {0x03, 0x06, 0x00, 0x0D, 0x00, 0x01, 0xD8, 0x2B },
+  {0x03, 0x06, 0x00, 0x06, 0x00, 0x01, 0xA9, 0xEA },
+  {0x03, 0x06, 0x00, 0x07, 0x00, 0x01, 0xF8, 0x2A },
 };
 const byte CleanOffCmd[2][8]={
-  {0x03, 0x06, 0x00, 0x0C, 0x00, 0x00, 0x48, 0x2B },
-  {0x03, 0x06, 0x00, 0x0D, 0x00, 0x00, 0x19, 0xEB },
+  {0x03, 0x06, 0x00, 0x06, 0x00, 0x00, 0x68, 0x2A },
+  {0x03, 0x06, 0x00, 0x07, 0x00, 0x00, 0x39, 0xEA },
 };
 
 float flow_rata[3]={6.2,4.2,32};
@@ -1058,7 +1068,7 @@ void resetAllToInitialState() {
   for (int i=0;i<7;++i){ uid[i]=0; lastUid[i]=0; }
 }
 
-// 碎冰接近开关中断（低电平有效）
+// 碎冰接近开关中断（高电平有效）
 void IRAM_ATTR encoder1ISR() {
   const uint32_t nowUs = micros();
   if (nowUs - crushLastPulseUs < CRUSH_MIN_PULSE_INTERVAL_US) {
@@ -1080,7 +1090,7 @@ void IRAM_ATTR encoder2ISR() {
   encoderTotal2++;
 }
 
-// 搅动电机接近式开关 ISR（GPIO35，低电平有效）
+// 搅动电机接近式开关 ISR（GPIO35，高电平有效）
 void IRAM_ATTR stirEncoderISR() {
   const uint32_t nowUs = micros();
   if (nowUs - stirLastPulseUs < STIR_MIN_PULSE_INTERVAL_US) {
@@ -1089,6 +1099,12 @@ void IRAM_ATTR stirEncoderISR() {
   stirLastPulseUs = nowUs;
   stirEncoderCount++;
   stirEncoderTotal++;
+}
+
+// 清洁主泵流量计 ISR（GPIO27，上升沿有效）
+void IRAM_ATTR cleanFlowISR() {
+  cleanFlowPulseCount++;
+  cleanFlowLastPulseMs = millis();
 }
 
 // ===== PATCH: 搅动电机“卡住反转/换向脱困”检测 =====
@@ -2560,27 +2576,31 @@ void setup() {
   // Serial.println(WiFi.macAddress());
 
   
-  pinMode(ENC1_A_PIN, INPUT_PULLUP);  // 接近开关信号（低电平有效），需外部上拉更稳
+  pinMode(ENC1_A_PIN, INPUT_PULLUP);  // 接近开关信号（高电平有效），需外部上拉更稳
   pinMode(ENC2_A_PIN, INPUT_PULLUP);
 
   // PATCH: 搅动电机光电传感器（GPIO35 无内部上拉，需外部上拉/开漏等硬件保证）
   pinMode(STIR_ENC_PIN, INPUT_PULLUP);
 
-// 碎冰接近开关（低电平有效） + 螺旋杆霍尔编码器（上升沿有效）
-  attachInterrupt(digitalPinToInterrupt(ENC1_A_PIN), encoder1ISR, FALLING);
+  // 清洁主泵流量计：上拉输入（若为开漏/干接点，建议外部上拉更稳）
+  pinMode(CLEAN_FLOW_PIN, INPUT_PULLUP);
+
+// 碎冰接近开关（高电平有效） + 螺旋杆霍尔编码器（上升沿有效）
+  attachInterrupt(digitalPinToInterrupt(ENC1_A_PIN), encoder1ISR, RISING);
   attachInterrupt(digitalPinToInterrupt(ENC2_A_PIN), encoder2ISR, RISING);
-  attachInterrupt(digitalPinToInterrupt(STIR_ENC_PIN), stirEncoderISR, FALLING);
+  attachInterrupt(digitalPinToInterrupt(STIR_ENC_PIN), stirEncoderISR, RISING);
+  attachInterrupt(digitalPinToInterrupt(CLEAN_FLOW_PIN), cleanFlowISR, RISING);
 
   // ===== PATCH: 三模块独立状态机绑定（含卡死检测/反转解卡/RPM打印） =====
   // pulsesPerRev 需要按你的实际编码器每转脉冲数修正：
   // - CRUSH/AUGER 若是单路霍尔/光电：常见 1/2/20 等
   // - STIR(GPIO35) 若是单个磁铁：通常 1
   fsmCrush.bind("CRUSH", &encoderTotal1, PULSES_PER_REV_CRUSH, iceMotorStop,  iceMotorForward,  iceMotorReverse);
-  fsmCrush.enableStall = true;
+  fsmCrush.enableStall = false; // 临时关闭卡死检测
   fsmAuger.bind("AUGER", &encoderTotal2, PULSES_PER_REV_AUGER, augerMotorStop, augerMotorForward, augerMotorReverse);
-  fsmAuger.enableStall = true;
+  fsmAuger.enableStall = false; // 临时关闭卡死检测
   fsmStir.bind ("STIR",  &stirEncoderTotal, PULSES_PER_REV_STIR,  stirMotorStop,  stirMotorForward,  stirMotorReverse);
-  fsmStir.enableStall = true;
+  fsmStir.enableStall = false; // 临时关闭卡死检测
 
   // ===== 新版卡死检测：监测源初始化 =====
   stallCrush.tag = "ICE";
@@ -2645,7 +2665,7 @@ static bool idleWasActive = false;
 void loop() {
   // checkMotorsMoving();
   // 新版卡死检测（两路接近+一路霍尔）
-  checkIceStallRecoveryNew();
+  // checkIceStallRecoveryNew(); // 临时关闭卡死脱困逻辑
   // if (millis() - lastPing >= PING_INTERVAL_MS) {
   //   lastPing = millis();
   //   sendHeartbeat();
@@ -2716,6 +2736,20 @@ void loop() {
   // checkTotalWeight(); // 如需总重闭环可打开
   checkCupLiftTrigger();
 
+  // 清洁主泵流量计：无流监测（仅清洁模式启用）
+  if (cleanFlowMonitorEnabled) {
+    uint32_t lastPulseMs;
+    noInterrupts();
+    lastPulseMs = cleanFlowLastPulseMs;
+    interrupts();
+
+    const uint32_t nowMs = millis();
+    if (!cleanFlowPopupSent && lastPulseMs > 0 && (nowMs - lastPulseMs >= CLEAN_FLOW_LOST_MS)) {
+      Serial.println("POPUP:清洁液余量告急，请添加清洁液");
+      cleanFlowPopupSent = true;
+    }
+  }
+
   // 0) 先处理串口指令（更新 motorActive 等）
   if (Serial.available()) {
     String input = Serial.readStringUntil('\n');
@@ -2726,6 +2760,13 @@ void loop() {
       Serial.println("clean1_on 命令收到，开启清洗1");
       relayWrite(CleanOnCmd[0], 8);
       delay(50);
+      // 开启清洁主泵流量监测
+      cleanFlowMonitorEnabled = true;
+      cleanFlowPopupSent = false;
+      noInterrupts();
+      cleanFlowPulseCount = 0;
+      cleanFlowLastPulseMs = millis();
+      interrupts();
     }
 
     if (input == "clean2_on") {
@@ -2738,6 +2779,13 @@ void loop() {
       Serial.println("clean1_off 命令收到，关闭清洗1");
       relayWrite(CleanOffCmd[0], 8);
       delay(50);
+      // 关闭清洁主泵流量监测并清状态
+      cleanFlowMonitorEnabled = false;
+      cleanFlowPopupSent = false;
+      noInterrupts();
+      cleanFlowPulseCount = 0;
+      cleanFlowLastPulseMs = 0;
+      interrupts();
     }
 
     if (input == "clean2_off") {
