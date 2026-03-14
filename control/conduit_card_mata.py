@@ -9,6 +9,7 @@ from bean.new_conduit_bean import NewConduitBean
 from control.conduit_new_dialog_mata import NewConduitDialog
 from ui_1080_py.Ui_conduit_card_ui import Ui_Form
 from tool_utils.condiut_enum import ConduitEnum
+from control.language_manager import maybe_convert_zh_tw
 
 
 # ===================== 冰/碎冰专用：自动出冰开关（替代“屏蔽”） =====================
@@ -52,7 +53,7 @@ class ConduitCardWidget(QWidget, Ui_Form):
 
     def init_ui(self):
         self.set_card_id(self.conduit_bean.conduit)
-        self.conduit_card_name_l.setText(self.conduit_bean.name)
+        self.conduit_card_name_l.setText(maybe_convert_zh_tw(self.conduit_bean.name))
         self.conduit_card_g_l.setText(f'{str(self.conduit_bean.margin)}g')
         h_m_list = self.conduit_bean.effective_time.split(':')
         e_hour = int(h_m_list[0])
@@ -389,7 +390,7 @@ class ConduitCardWidget(QWidget, Ui_Form):
 
     def result_callBack(self, conduit_bean):
         self.conduit_bean = conduit_bean
-        self.conduit_card_name_l.setText(conduit_bean.name)
+        self.conduit_card_name_l.setText(maybe_convert_zh_tw(conduit_bean.name))
         self.conduit_card_g_l.setText(f'{str(conduit_bean.margin)}g')
         h_m_list = conduit_bean.effective_time.split(':')
         e_hour = int(h_m_list[0])

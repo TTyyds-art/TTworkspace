@@ -114,6 +114,16 @@ class MenuCardWidget(QWidget, Ui_Form):
         name = self.menu_tee_bean.get_Name()
         self.set_tee_image(resource_path(f'tee_image_xlsx/{name}.png'))
 
+    def retranslate_and_refresh(self):
+        try:
+            self.retranslateUi(self)
+        except Exception:
+            pass
+        try:
+            self.init_ui()
+        except Exception:
+            pass
+
     def set_card_id(self, num):
         self.label_number.setText(str(num))
 

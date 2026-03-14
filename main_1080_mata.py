@@ -86,6 +86,7 @@ from control.update_util import (
 )
 from control.menu_update_mata import MenuUpdateWidget
 from control.language_settings_mata import LanguageSettingsPage
+from control.language_manager import LanguageManager
 
 ICE_CHANNELS = set("AB")      # 冰路通道，按你机器实际改
 SUGAR_CANDIDATES = set("CDE") # 配方里可能出现的糖路通道（出现了才按糖量缩放）
@@ -353,6 +354,17 @@ class ConduitCardMaketeeWidget(QtWidgets.QWidget):
         except Exception:
             minutes = None
         self.ui.expect_time.setText(f"{minutes}min" if minutes is not None else "—")
+
+    def retranslate_and_refresh(self):
+        try:
+            self.ui.retranslateUi(self)
+        except Exception:
+            pass
+        try:
+            if self.bean is not None:
+                self.update_conduit_bean([self.bean])
+        except Exception:
+            pass
 
 
 
@@ -1913,6 +1925,9 @@ class Main1080Window(QWidget, Ui_Form):
         self.camera_data = []
 
         self.setupUi(self)
+
+        self._lang_mgr = LanguageManager(app)
+        self._lang_mgr.apply(self._lang_mgr.get_lang())
         # self._brew_timer = QTimer(self); self._brew_timer.timeout.connect(self._on_brew_tick)
 
 
@@ -4763,12 +4778,83 @@ class Main1080Window(QWidget, Ui_Form):
         self.language_settings_widget = LanguageSettingsPage(
             parent=self.sw_setting_widget,
             on_back=self._back_from_language_settings,
+            on_apply_language=self.apply_language,
         )
         self.stackedWidget_setting.addWidget(self.language_settings_widget)
         self._language_page_created = True
 
     def _back_from_language_settings(self):
         self.stackedWidget_setting.setCurrentWidget(self.setting_home)
+
+    def apply_language(self, lang: str):
+        if not hasattr(self, "_lang_mgr"):
+            return
+        self._lang_mgr.apply(lang)
+        try:
+            self.retranslateUi(self)
+        except Exception:
+            pass
+        try:
+            if getattr(self, "language_settings_widget", None):
+                self.language_settings_widget.ui.retranslateUi(self.language_settings_widget._mw)
+        except Exception:
+            pass
+        try:
+            def _retranslate_widget(w):
+                if w is None:
+                    return
+                try:
+                    if hasattr(w, "retranslateUi"):
+                        w.retranslateUi(w)
+                except Exception:
+                    pass
+                try:
+                    ui = getattr(w, "ui", None)
+                    if ui is not None and hasattr(ui, "retranslateUi"):
+                        ui.retranslateUi(w)
+                except Exception:
+                    pass
+                try:
+                    if hasattr(w, "retranslate_and_refresh"):
+                        w.retranslate_and_refresh()
+                except Exception:
+                    pass
+
+            # 订单卡片（订单号/实付等）
+            for w in getattr(self, "order_card_widgets", []) or []:
+                _retranslate_widget(w)
+
+            # 菜单卡片（规格）
+            for w in getattr(self, "menu_cards_by_name", {}).values():
+                _retranslate_widget(w)
+
+            # 管理页通道卡片（剩余量/到期时间）
+            for w in getattr(self, "conduit_card_widgets", []) or []:
+                _retranslate_widget(w)
+
+            # 泡茶页通道卡片
+            for w in getattr(self, "maketee_conduit_card_widgets", []) or []:
+                _retranslate_widget(w)
+
+            # 副屏通道卡片
+            if getattr(self, "second_screen_ui", None):
+                try:
+                    self.second_screen_ui.retranslateUi(self.second_screen_ui)
+                except Exception:
+                    pass
+                try:
+                    for w in self.second_screen_ui.findChildren(ItemScreenConduitWMata):
+                        _retranslate_widget(w)
+                except Exception:
+                    pass
+
+            # 清洗页
+            if getattr(self, "clean_day_ui", None):
+                _retranslate_widget(self.clean_day_ui)
+            if getattr(self, "clean_week_ui", None):
+                _retranslate_widget(self.clean_week_ui)
+        except Exception:
+            pass
 
     def open_second_screen_change(self, is_open_screen):
             # 设置副屏显示

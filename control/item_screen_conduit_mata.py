@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout
 from control.item_conduit_widget import QBarPainter
 from tool_utils import util
 from ui_1080_py.Ui_item_screen_conduit_ui import Ui_Form
+from control.language_manager import maybe_convert_zh_tw
 
 
 class ItemScreenConduitWMata(QWidget, Ui_Form):
@@ -37,7 +38,7 @@ class ItemScreenConduitWMata(QWidget, Ui_Form):
 
     def init_ui(self):
         self.l_conduit.setText(self.conduit_bean.conduit)
-        self.l_name.setText(self.conduit_bean.name)
+        self.l_name.setText(maybe_convert_zh_tw(self.conduit_bean.name))
         margin = self.conduit_bean.margin
         self.l_margin.setText(f'{margin}g')
         h_m_list = self.conduit_bean.effective_time.split(':')

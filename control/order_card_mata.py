@@ -46,6 +46,16 @@ class OrderCardWidget(QWidget, Ui_Form):
         num = tee_bean.num_tee
         self.l_number.setText(f"*{num}")
 
+    def retranslate_and_refresh(self):
+        try:
+            self.retranslateUi(self)
+        except Exception:
+            pass
+        try:
+            self.init_ui(self.tee_bean)
+        except Exception:
+            pass
+
     def eventFilter(self, obj, event):
         if event.type() == event.MouseButtonPress:
             if obj == self.widget:
