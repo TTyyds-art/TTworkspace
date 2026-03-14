@@ -85,6 +85,7 @@ from control.update_util import (
     download_file,apply_update_and_restart , local_app_path,update_dirs
 )
 from control.menu_update_mata import MenuUpdateWidget
+from control.language_settings_mata import LanguageSettingsPage
 
 ICE_CHANNELS = set("AB")      # 冰路通道，按你机器实际改
 SUGAR_CANDIDATES = set("CDE") # 配方里可能出现的糖路通道（出现了才按糖量缩放）
@@ -1850,6 +1851,7 @@ class Main1080Window(QWidget, Ui_Form):
         self.setting_order_content_Layout = None
         self.refresh_setting_local_tee_thread = None
         self.refresh_order_content_thread = None
+        self._language_page_created = False
         self.save_order_db_thread = None
         self.save_message_db_thread = None
         self.today_product_id = 0
@@ -1862,6 +1864,7 @@ class Main1080Window(QWidget, Ui_Form):
         self.manager_keyboard_ui = None
         self.manager_conduit_gridLayout = None
         self.notice_ui = None
+        self.language_settings_widget = None
         self.conduit_gridLayout = None
         self.conduit_content_Layout = None
         self.order_gridLayout = None
@@ -1883,6 +1886,20 @@ class Main1080Window(QWidget, Ui_Form):
         self.complete_time = ""
         self.clean_l_date_min = 00
         self.clean_l_date_sec = 00
+
+        # 清洗顺序控制（每日清洗专用）
+        self._daily_clean_channels = [
+            "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T"
+        ]
+        self._daily_clean_value = 100
+        self._daily_clean_pump_delay_ms = 1000
+        self._daily_clean_channel_seconds = 30
+        self._daily_clean_stop_delay_ms = 1000
+        self._clean_seq_active = False
+        self._clean_seq_paused = False
+        self._clean_seq_index = 0
+        self._clean_seq_token = 0
+        self._clean_seq_current_channel = ""
 
         self.maketee_conduit_gridLayout = None      # 泡茶页网格（若你已创建则跳过）
         self.maketee_conduit_num = 0                # 泡茶页计数（独立于 self.conduit_num）
@@ -2189,6 +2206,7 @@ class Main1080Window(QWidget, Ui_Form):
 
         # 初始化设置菜单中的管道界面
         self.init_setting_conduit_widget()
+        self.init_language_settings_page()
         #串口初始化
         self.init_conduit_serial_thread()###
         # self.conduit_serial_thread.material_detected.connect(self.on_material_detected)
@@ -4174,8 +4192,8 @@ class Main1080Window(QWidget, Ui_Form):
         self.complete_time = self.clean_l_date_min * 60 + self.clean_l_date_sec
 
         if self.complete_time == 0:
-            # 倒计时结束：发送关清洗阀指令
-            self._send_clean_serial(False)
+            # 倒计时结束：停止顺序清洗
+            self._stop_daily_clean_sequence()
 
             # 原有逻辑：提示“清洗完成”并刷新本地记录
             self.set_message_info("清洗完成", "绿色", "清洗已完成")
@@ -4194,8 +4212,8 @@ class Main1080Window(QWidget, Ui_Form):
     @pyqtSlot()
     def on_clean_begin_clicked(self):  # 当清洗开始按钮被按下触发
         if self.is_login or self.is_debug:  # 检查是否登录
-            # 串口：开始清洗 -> 开两个阀
-            self._send_clean_serial(True)
+            # 串口：开始清洗 -> 顺序清洗（日洗）
+            self._start_daily_clean_sequence()
 
             # 清洗开始
             self.clean_pause.setChecked(False)
@@ -4206,7 +4224,11 @@ class Main1080Window(QWidget, Ui_Form):
                 self.current_time = datetime.now().strftime('%H:%M:%S')  # 更新当前时间
                 # 计算清洗总时长 以秒为单位
                 if self.is_day:
-                    self.T = int(math.ceil(len(self.work_conduit_bean) / 3) * self.interval * (self.count / 2))
+                    per_channel = (
+                        (self._daily_clean_pump_delay_ms + self._daily_clean_stop_delay_ms) / 1000
+                        + self._daily_clean_channel_seconds
+                    )
+                    self.T = int(len(self._daily_clean_channels) * per_channel)
                 else:
                     self.T = int(math.ceil(len(self.work_conduit_bean) / 3) * self.interval * self.count)
                 print(f"self.T:{self.T}")
@@ -4226,8 +4248,8 @@ class Main1080Window(QWidget, Ui_Form):
         if self.is_login or self.is_debug:
             # 只有在已经开始清洗的情况下，点击暂停才发关闭命令
             if self.is_start:
-                # 串口：暂停 -> 关两个阀
-                self._send_clean_serial(False)
+                # 串口：暂停 -> 停主泵并 stop 当前通道
+                self._pause_daily_clean_sequence()
 
                 # 清洗暂停
                 self.clean_begin.setChecked(False)
@@ -4241,8 +4263,8 @@ class Main1080Window(QWidget, Ui_Form):
     @pyqtSlot()
     def on_clean_stop_clicked(self):   # 清洗停止按钮
         if self.is_login or self.is_debug:
-            # 串口：停止 -> 关两个阀
-            self._send_clean_serial(False)
+            # 串口：停止 -> 停主泵并 stop 当前通道
+            self._stop_daily_clean_sequence()
 
             # 清洗停止
             self.clean_begin.setChecked(False)
@@ -4262,6 +4284,97 @@ class Main1080Window(QWidget, Ui_Form):
             print(f"clean_l_date_min: {self.clean_l_date_min}, clean_l_date_sec: {self.clean_l_date_sec}")
             self.complete_time = self.calculate_completion_time(self.current_time, int(self.clean_l_date_min), int(self.clean_l_date_sec))  #暂停了再点击开始要更新时间
             self.clean_complete_date.setText(self.complete_time)#设置完成时间
+
+    # === 每日清洗顺序控制 ===
+    def _clean_seq_send(self, cmd: str):
+        th = getattr(self, "conduit_serial_thread", None)
+        if not (th and th.isRunning()):
+            print("[clean_seq] serial thread not running")
+            return False
+        th.send_data(cmd)
+        return True
+
+    def _start_daily_clean_sequence(self):
+        if self._clean_seq_active:
+            return
+        self._clean_seq_active = True
+        self._clean_seq_paused = False
+        self._clean_seq_index = 0
+        self._clean_seq_token += 1
+        self._clean_seq_current_channel = ""
+        self._run_next_clean_channel(self._clean_seq_token)
+
+    def _pause_daily_clean_sequence(self):
+        if not self._clean_seq_active:
+            return
+        self._clean_seq_paused = True
+        self._clean_seq_token += 1
+        # 先关主泵，再 stop 当前通道
+        self._clean_seq_send("clean1_off")
+        self._clean_seq_send("stop")
+
+    def _stop_daily_clean_sequence(self):
+        if not self._clean_seq_active:
+            return
+        self._clean_seq_active = False
+        self._clean_seq_paused = False
+        self._clean_seq_token += 1
+        # 先关主泵，再 stop 当前通道
+        self._clean_seq_send("clean1_off")
+        self._clean_seq_send("stop")
+        self._clean_seq_current_channel = ""
+
+    def _run_next_clean_channel(self, token: int):
+        if not self._clean_seq_active or self._clean_seq_paused or token != self._clean_seq_token:
+            return
+        if self._clean_seq_index >= len(self._daily_clean_channels):
+            # 全部完成
+            self._clean_seq_active = False
+            self._clean_seq_current_channel = ""
+            self._clean_seq_send("clean1_off")
+            self._clean_seq_send("stop")
+            return
+
+        ch = self._daily_clean_channels[self._clean_seq_index]
+        self._clean_seq_current_channel = ch
+        cmd = f"{ch}{self._daily_clean_value:03d}"
+        if not self._clean_seq_send(cmd):
+            return
+
+        # 1秒后开主泵
+        QtCore.QTimer.singleShot(
+            self._daily_clean_pump_delay_ms,
+            lambda t=token: self._clean_seq_turn_on_pump(t)
+        )
+
+    def _clean_seq_turn_on_pump(self, token: int):
+        if not self._clean_seq_active or self._clean_seq_paused or token != self._clean_seq_token:
+            return
+        self._clean_seq_send("clean1_on")
+
+        # 30秒后关主泵
+        QtCore.QTimer.singleShot(
+            self._daily_clean_channel_seconds * 1000,
+            lambda t=token: self._clean_seq_turn_off_pump(t)
+        )
+
+    def _clean_seq_turn_off_pump(self, token: int):
+        if not self._clean_seq_active or self._clean_seq_paused or token != self._clean_seq_token:
+            return
+        self._clean_seq_send("clean1_off")
+
+        # 1秒后 stop 通道，并进入下一通道
+        QtCore.QTimer.singleShot(
+            self._daily_clean_stop_delay_ms,
+            lambda t=token: self._clean_seq_stop_channel_and_next(t)
+        )
+
+    def _clean_seq_stop_channel_and_next(self, token: int):
+        if not self._clean_seq_active or self._clean_seq_paused or token != self._clean_seq_token:
+            return
+        self._clean_seq_send("stop")
+        self._clean_seq_index += 1
+        self._run_next_clean_channel(token)
 
     # TODO 清洗菜单功能 <---
 
@@ -4644,6 +4757,19 @@ class Main1080Window(QWidget, Ui_Form):
         self.setting_conduit_gridLayout.setVerticalSpacing(20)
         self.setting_conduit_content_Layout.addLayout(self.setting_conduit_gridLayout)
 
+    def init_language_settings_page(self):
+        if self._language_page_created:
+            return
+        self.language_settings_widget = LanguageSettingsPage(
+            parent=self.sw_setting_widget,
+            on_back=self._back_from_language_settings,
+        )
+        self.stackedWidget_setting.addWidget(self.language_settings_widget)
+        self._language_page_created = True
+
+    def _back_from_language_settings(self):
+        self.stackedWidget_setting.setCurrentWidget(self.setting_home)
+
     def open_second_screen_change(self, is_open_screen):
             # 设置副屏显示
             if is_open_screen:
@@ -4724,6 +4850,7 @@ class Main1080Window(QWidget, Ui_Form):
         self.wbtn_setting_loacl_record.installEventFilter(self)
         self.wbtn_setting_debug.installEventFilter(self)
         self.wbtn_setting_second_screen.installEventFilter(self)
+        self.wbtn_setting_second_screen_2.installEventFilter(self)
         self.wbtn_setting_update.installEventFilter(self)
         self._menu_update_widget = None
         # 设置开启副屏开关
@@ -4924,6 +5051,9 @@ class Main1080Window(QWidget, Ui_Form):
                         self.login_ui.show()
             elif obj == self.wbtn_setting_second_screen:
                 self.stackedWidget_setting.setCurrentWidget(self.setting_conduit_content)
+            elif obj == self.wbtn_setting_second_screen_2:
+                self.init_language_settings_page()
+                self.stackedWidget_setting.setCurrentWidget(self.language_settings_widget)
             elif obj == self.on_off_setting_widget:
                 if self.is_login or self.is_debug:
                     self.open_second_screen_change(self.is_open_screen)
@@ -7516,20 +7646,17 @@ class Main1080Window(QWidget, Ui_Form):
 
     def _send_clean_serial(self, is_on: bool):
         """
-        清洗按键对应的串口命令：
-        - is_on = True  -> clean1_on  延时50ms  clean2_on
-        - is_on = False -> clean1_off 延时50ms  clean2_off
+        旧清洗按键对应的串口命令（已废弃）：
+        - is_on = True  -> clean1_on
+        - is_on = False -> clean1_off
         """
         th = getattr(self, "conduit_serial_thread", None)
         if not (th and th.isRunning()):
             return
-
         if is_on:
             th.send_data("clean1_on")
-            QtCore.QTimer.singleShot(50, lambda: th.send_data("clean2_on"))
         else:
             th.send_data("clean1_off")
-            QtCore.QTimer.singleShot(50, lambda: th.send_data("clean2_off"))
 
 
 

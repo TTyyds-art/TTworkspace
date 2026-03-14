@@ -1,0 +1,523 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1240</width>
+    <height>881</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>800</width>
+    <height>600</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>2000</width>
+    <height>1000</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QGroupBox" name="groupBox">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>100</y>
+      <width>1111</width>
+      <height>701</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QGroupBox {
+    background-color: #f8f9fa;          /* 浅灰背景 */
+    border: 2px solid #d0d7de;           /* 外边框 */
+    border-radius: 18px;                  /* 圆角 */
+    margin-top: 12px;                      /* 为标题留出空间（标题本身会占据位置） */
+    padding-top: 8px;                      /* 内边距，避免内容紧贴边框 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);  /* 外阴影，使整体凸起 */
+}
+</string>
+    </property>
+    <property name="title">
+     <string/>
+    </property>
+    <widget class="QRadioButton" name="radioButton">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>140</y>
+       <width>451</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>微软雅黑</family>
+       <pointsize>14</pointsize>
+      </font>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::LayoutDirection::LeftToRight</enum>
+     </property>
+     <property name="autoFillBackground">
+      <bool>false</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">/* 所有 QRadioButton 的基础样式 */
+QRadioButton {
+    background-color: #f0f0f0;        /* 未选中时的背景色 */
+    color: #333333;                    /* 未选中时的文字颜色 */
+    border: 1px solid #cccccc;          /* 边框 */
+    border-radius: 15px;                /* 圆角，可根据高度调整 */
+    padding: 5px 15px;                  /* 内边距，增大点击区域 */
+    spacing: 5px;                        
+}
+
+
+/* 选中时的样式 */
+QRadioButton:checked {
+    background-color: #4CAF50;          /* 绿色背景 */
+    color: white;                        /* 白色文字 */
+    border: 1px solid #27ae60;           
+}
+
+/* 悬停效果 */
+QRadioButton:hover {
+    background-color: #e0e0e0;
+}
+QRadioButton:checked:hover {
+    background-color: #66BB6A;
+}
+
+QRadioButton::indicator {
+    width: 0px;                       /* 隐藏默认的指示器（小圆圈） */
+    height: 0px;
+}</string>
+     </property>
+     <property name="text">
+      <string>简体中文</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton_3">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>360</y>
+       <width>451</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>微软雅黑</family>
+       <pointsize>14</pointsize>
+      </font>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::LayoutDirection::LeftToRight</enum>
+     </property>
+     <property name="autoFillBackground">
+      <bool>false</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">/* 所有 QRadioButton 的基础样式 */
+QRadioButton {
+    background-color: #f0f0f0;        /* 未选中时的背景色 */
+    color: #333333;                    /* 未选中时的文字颜色 */
+    border: 1px solid #cccccc;          /* 边框 */
+    border-radius: 15px;                /* 圆角，可根据高度调整 */
+    padding: 5px 15px;                  /* 内边距，增大点击区域 */
+    spacing: 5px;                        
+}
+
+
+/* 选中时的样式 */
+QRadioButton:checked {
+    background-color: #4CAF50;          /* 绿色背景 */
+    color: white;                        /* 白色文字 */
+    border: 1px solid #27ae60;           
+}
+
+/* 悬停效果 */
+QRadioButton:hover {
+    background-color: #e0e0e0;
+}
+QRadioButton:checked:hover {
+    background-color: #66BB6A;
+}
+
+QRadioButton::indicator {
+    width: 0px;                       /* 隐藏默认的指示器（小圆圈） */
+    height: 0px;
+}</string>
+     </property>
+     <property name="text">
+      <string>English</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_2">
+     <property name="geometry">
+      <rect>
+       <x>590</x>
+       <y>60</y>
+       <width>391</width>
+       <height>241</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">border-image: url(:/icon/language_illustration.png);</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_5">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>70</y>
+       <width>361</width>
+       <height>41</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>幼圆</family>
+       <pointsize>19</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>选择一种语言应用于整个界面</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_4">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>30</y>
+       <width>261</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>黑体</family>
+       <pointsize>21</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>选择界面语言</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton_11">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>580</y>
+       <width>451</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>微软雅黑</family>
+       <pointsize>14</pointsize>
+      </font>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::LayoutDirection::LeftToRight</enum>
+     </property>
+     <property name="autoFillBackground">
+      <bool>false</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">/* 所有 QRadioButton 的基础样式 */
+QRadioButton {
+    background-color: #f0f0f0;        /* 未选中时的背景色 */
+    color: #333333;                    /* 未选中时的文字颜色 */
+    border: 1px solid #cccccc;          /* 边框 */
+    border-radius: 15px;                /* 圆角，可根据高度调整 */
+    padding: 5px 15px;                  /* 内边距，增大点击区域 */
+    spacing: 5px;                        
+}
+
+
+/* 选中时的样式 */
+QRadioButton:checked {
+    background-color: #4CAF50;          /* 绿色背景 */
+    color: white;                        /* 白色文字 */
+    border: 1px solid #27ae60;           
+}
+
+/* 悬停效果 */
+QRadioButton:hover {
+    background-color: #e0e0e0;
+}
+QRadioButton:checked:hover {
+    background-color: #66BB6A;
+}
+
+QRadioButton::indicator {
+    width: 0px;                       /* 隐藏默认的指示器（小圆圈） */
+    height: 0px;
+}</string>
+     </property>
+     <property name="text">
+      <string>한국어</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton_8">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>250</y>
+       <width>451</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>微软雅黑</family>
+       <pointsize>14</pointsize>
+      </font>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::LayoutDirection::LeftToRight</enum>
+     </property>
+     <property name="autoFillBackground">
+      <bool>false</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">/* 所有 QRadioButton 的基础样式 */
+QRadioButton {
+    background-color: #f0f0f0;        /* 未选中时的背景色 */
+    color: #333333;                    /* 未选中时的文字颜色 */
+    border: 1px solid #cccccc;          /* 边框 */
+    border-radius: 15px;                /* 圆角，可根据高度调整 */
+    padding: 5px 15px;                  /* 内边距，增大点击区域 */
+    spacing: 5px;                        
+}
+
+
+/* 选中时的样式 */
+QRadioButton:checked {
+    background-color: #4CAF50;          /* 绿色背景 */
+    color: white;                        /* 白色文字 */
+    border: 1px solid #27ae60;           
+}
+
+/* 悬停效果 */
+QRadioButton:hover {
+    background-color: #e0e0e0;
+}
+QRadioButton:checked:hover {
+    background-color: #66BB6A;
+}
+
+QRadioButton::indicator {
+    width: 0px;                       /* 隐藏默认的指示器（小圆圈） */
+    height: 0px;
+}</string>
+     </property>
+     <property name="text">
+      <string>繁體中文</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton_9">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>470</y>
+       <width>451</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>微软雅黑</family>
+       <pointsize>14</pointsize>
+      </font>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::LayoutDirection::LeftToRight</enum>
+     </property>
+     <property name="autoFillBackground">
+      <bool>false</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">/* 所有 QRadioButton 的基础样式 */
+QRadioButton {
+    background-color: #f0f0f0;        /* 未选中时的背景色 */
+    color: #333333;                    /* 未选中时的文字颜色 */
+    border: 1px solid #cccccc;          /* 边框 */
+    border-radius: 15px;                /* 圆角，可根据高度调整 */
+    padding: 5px 15px;                  /* 内边距，增大点击区域 */
+    spacing: 5px;                        
+}
+
+
+/* 选中时的样式 */
+QRadioButton:checked {
+    background-color: #4CAF50;          /* 绿色背景 */
+    color: white;                        /* 白色文字 */
+    border: 1px solid #27ae60;           
+}
+
+/* 悬停效果 */
+QRadioButton:hover {
+    background-color: #e0e0e0;
+}
+QRadioButton:checked:hover {
+    background-color: #66BB6A;
+}
+
+QRadioButton::indicator {
+    width: 0px;                       /* 隐藏默认的指示器（小圆圈） */
+    height: 0px;
+}</string>
+     </property>
+     <property name="text">
+      <string>日本語</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButton_language_pply">
+     <property name="geometry">
+      <rect>
+       <x>690</x>
+       <y>340</y>
+       <width>211</width>
+       <height>41</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>宋体</family>
+       <pointsize>16</pointsize>
+       <bold>false</bold>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QPushButton {
+    background-color: #2ecc71;
+    color: white;
+    border-radius: 10px;
+    border: none;
+    padding: 5px 15px;
+}
+QPushButton:hover {
+    background-color: #27ae60;
+}
+QPushButton:pressed {
+    background-color: #1e8449;
+}</string>
+     </property>
+     <property name="text">
+      <string>应用</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QGroupBox" name="groupBox_2">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>0</y>
+      <width>1111</width>
+      <height>91</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QGroupBox {
+    background-color: #f8f9fa;          /* 浅灰背景 */
+    border: 2px solid #d0d7de;           /* 外边框 */
+    border-radius: 12px;                  /* 圆角 */
+    margin-top: 5px;                     
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);  /* 外阴影，使整体凸起 */
+}
+</string>
+    </property>
+    <property name="title">
+     <string/>
+    </property>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_7">
+       <property name="minimumSize">
+        <size>
+         <width>41</width>
+         <height>41</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>41</width>
+         <height>41</height>
+        </size>
+       </property>
+       <property name="sizeIncrement">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">
+border-image: url(:/icon/icon_back.png);</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLabel" name="label">
+       <property name="minimumSize">
+        <size>
+         <width>181</width>
+         <height>41</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <family>黑体</family>
+         <pointsize>36</pointsize>
+         <bold>false</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>语言选择</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <zorder>groupBox_2</zorder>
+   <zorder>groupBox</zorder>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1240</width>
+     <height>33</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources>
+  <include location="drawable/drawable.qrc"/>
+ </resources>
+ <connections/>
+</ui>
