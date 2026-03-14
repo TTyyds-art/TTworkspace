@@ -14,8 +14,8 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                              QTableWidget, QTableWidgetItem, QPushButton,
                              QLineEdit, QLabel, QTextEdit, QFileDialog,
                              QMessageBox, QHeaderView, QComboBox, QScrollArea,
-                             QDialog)
-from PyQt5.QtCore import pyqtSignal, QTimer
+                             QDialog, QAbstractItemView)
+from PyQt5.QtCore import pyqtSignal, QTimer, QEvent, Qt
 from PyQt5.QtGui import QPixmap, QImage, QFontDatabase, QFont
 import qrcode
 from io import BytesIO
@@ -354,9 +354,14 @@ class MenuUpdateWidget(QWidget):
         super().__init__(parent)
         self.menus = []
         self.recipes = []
+        self._dbg_enabled = False
         self._init_font()
         self._init_ui()
         self._load_data()
+
+    def _dbg(self, msg):
+        if self._dbg_enabled:
+            print(f"[MenuUpdate][Debug] {msg}")
     
     def _init_font(self):
         font_path = _res_path('fonts/AlibabaPuHuiTi-3/AlibabaPuHuiTi-3-65-Medium/AlibabaPuHuiTi-3-65-Medium.ttf')
@@ -404,6 +409,41 @@ class MenuUpdateWidget(QWidget):
         
         # 应用统一字体
         self.setFont(self.app_font)
+
+    def retranslate_and_refresh(self):
+        try:
+            self.btn_back.setText("← 返回设置")
+            self.tabs.setTabText(self.tabs.indexOf(self.tab_menu), "菜单管理")
+            self.tabs.setTabText(self.tabs.indexOf(self.tab_recipe), "配方管理")
+            self.tabs.setTabText(self.tabs.indexOf(self.tab_io), "导入/导出")
+
+            # 菜单管理按钮
+            self.btn_add_menu.setText("+ 新增菜单")
+            self.btn_del_menu.setText("删除选中")
+            self.btn_save_menu.setText("保存")
+
+            # 配方管理按钮
+            self.btn_add_recipe.setText("+ 新增配方")
+            self.btn_del_recipe.setText("删除选中")
+            self.btn_save_recipe.setText("保存")
+            self.btn_view_mode.setText("切换视图")
+
+            # 导入导出按钮
+            self.btn_import_json.setText("导入菜单+配方包")
+            self.btn_export.setText("导出菜单+配方包")
+            self.lbl_version.setText("当前版本: v1")
+            self.btn_rollback.setText("回滚到上一版本")
+
+            # 表头
+            self.menu_table.setHorizontalHeaderLabels([
+                "ID", "名称", "价格", "图片", "杯型", "关联配方ID", "tips", "状态"
+            ])
+            self.recipe_table.setHorizontalHeaderLabels([
+                "配方ID", "基础材料", "冰基底", "碎冰基底", "糖基底", "冰规则", "糖规则"
+            ])
+            self.recipe_text.setPlaceholderText("配方JSON文本视图...")
+        except Exception:
+            pass
     
     def _apply_table_style(self, table):
         """统一表格样式"""
@@ -470,7 +510,9 @@ class MenuUpdateWidget(QWidget):
         self.menu_table.setHorizontalHeaderLabels(["ID", "名称", "价格", "图片", "杯型", "关联配方ID", "tips", "状态"])
         self.menu_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.menu_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.menu_table.setEditTriggers(QAbstractItemView.SelectedClicked | QAbstractItemView.EditKeyPressed)
         self.menu_table.cellDoubleClicked.connect(self._on_menu_cell_double_clicked)
+        self.menu_table.cellClicked.connect(self._on_menu_cell_clicked)
         self._apply_table_style(self.menu_table)
         layout.addWidget(self.menu_table)
         
@@ -822,6 +864,29 @@ class MenuUpdateWidget(QWidget):
     def _log(self, msg):
         ts = datetime.now().strftime("%H:%M:%S")
         self.io_log.append(f"[{ts}] {msg}")
+
+    def _on_menu_cell_clicked(self, row, col):
+        """点击单元格：直接进入表格内编辑并弹出系统键盘"""
+        # 图片列保留双击选图逻辑
+        if col == 3:
+            return
+        item = self.menu_table.item(row, col)
+        if item is None:
+            item = QTableWidgetItem("")
+            self.menu_table.setItem(row, col, item)
+
+        try:
+            from control.login_mata import open_system_keyboard
+        except Exception:
+            open_system_keyboard = None
+
+        def _start_edit():
+            if open_system_keyboard:
+                open_system_keyboard()
+            self.menu_table.setCurrentCell(row, col)
+            self.menu_table.editItem(item)
+
+        QTimer.singleShot(0, _start_edit)
 
 
 def get_recipe_by_id(recipe_id):

@@ -93,6 +93,21 @@ class CleanDayLoadMata(QWidget, Ui_Form):
     def clean_T(self, T):
         self.total_time = T
 
+    def retranslate_and_refresh(self):
+        try:
+            current_time = self.l_date.text()
+        except Exception:
+            current_time = None
+        try:
+            self.retranslateUi(self)
+        except Exception:
+            pass
+        if current_time:
+            try:
+                self.l_date.setText(current_time)
+            except Exception:
+                pass
+
     def test_time(self):
         # self.test_thread = TimeThread()
         # self.test_thread.result.connect(self.change_progress)

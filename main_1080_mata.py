@@ -4853,6 +4853,10 @@ class Main1080Window(QWidget, Ui_Form):
                 _retranslate_widget(self.clean_day_ui)
             if getattr(self, "clean_week_ui", None):
                 _retranslate_widget(self.clean_week_ui)
+
+            # 菜单更新页
+            if getattr(self, "_menu_update_widget", None):
+                _retranslate_widget(self._menu_update_widget)
         except Exception:
             pass
 
