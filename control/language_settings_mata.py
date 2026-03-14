@@ -23,10 +23,9 @@ class LanguageSettingsPage(QWidget):
 
         central = self._mw.centralWidget()
         central.setParent(self)
-        central.setFixedSize(1000, 600)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(central, alignment=Qt.AlignLeft | Qt.AlignTop)
+        layout.addWidget(central)
 
         self.init_font()
         if hasattr(self.ui, "label_7"):

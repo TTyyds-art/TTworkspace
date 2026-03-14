@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1240</width>
-    <height>881</height>
+    <width>1920</width>
+    <height>1080</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -18,8 +18,8 @@
   </property>
   <property name="maximumSize">
    <size>
-    <width>2000</width>
-    <height>1000</height>
+    <width>4000</width>
+    <height>2000</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -31,8 +31,8 @@
      <rect>
       <x>20</x>
       <y>100</y>
-      <width>1111</width>
-      <height>701</height>
+      <width>1391</width>
+      <height>921</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -54,14 +54,14 @@
       <rect>
        <x>30</x>
        <y>140</y>
-       <width>451</width>
-       <height>61</height>
+       <width>611</width>
+       <height>91</height>
       </rect>
      </property>
      <property name="font">
       <font>
        <family>微软雅黑</family>
-       <pointsize>14</pointsize>
+       <pointsize>25</pointsize>
       </font>
      </property>
      <property name="layoutDirection">
@@ -113,15 +113,15 @@ QRadioButton::indicator {
      <property name="geometry">
       <rect>
        <x>30</x>
-       <y>360</y>
-       <width>451</width>
-       <height>61</height>
+       <y>460</y>
+       <width>611</width>
+       <height>91</height>
       </rect>
      </property>
      <property name="font">
       <font>
        <family>微软雅黑</family>
-       <pointsize>14</pointsize>
+       <pointsize>25</pointsize>
       </font>
      </property>
      <property name="layoutDirection">
@@ -169,10 +169,10 @@ QRadioButton::indicator {
     <widget class="QLabel" name="label_2">
      <property name="geometry">
       <rect>
-       <x>590</x>
+       <x>750</x>
        <y>60</y>
-       <width>391</width>
-       <height>241</height>
+       <width>581</width>
+       <height>341</height>
       </rect>
      </property>
      <property name="styleSheet">
@@ -186,15 +186,15 @@ QRadioButton::indicator {
      <property name="geometry">
       <rect>
        <x>30</x>
-       <y>70</y>
-       <width>361</width>
+       <y>80</y>
+       <width>481</width>
        <height>41</height>
       </rect>
      </property>
      <property name="font">
       <font>
        <family>幼圆</family>
-       <pointsize>19</pointsize>
+       <pointsize>27</pointsize>
       </font>
      </property>
      <property name="text">
@@ -206,14 +206,14 @@ QRadioButton::indicator {
       <rect>
        <x>30</x>
        <y>30</y>
-       <width>261</width>
-       <height>31</height>
+       <width>291</width>
+       <height>41</height>
       </rect>
      </property>
      <property name="font">
       <font>
        <family>黑体</family>
-       <pointsize>21</pointsize>
+       <pointsize>28</pointsize>
       </font>
      </property>
      <property name="text">
@@ -224,15 +224,15 @@ QRadioButton::indicator {
      <property name="geometry">
       <rect>
        <x>30</x>
-       <y>580</y>
-       <width>451</width>
-       <height>61</height>
+       <y>780</y>
+       <width>611</width>
+       <height>91</height>
       </rect>
      </property>
      <property name="font">
       <font>
        <family>微软雅黑</family>
-       <pointsize>14</pointsize>
+       <pointsize>25</pointsize>
       </font>
      </property>
      <property name="layoutDirection">
@@ -281,15 +281,15 @@ QRadioButton::indicator {
      <property name="geometry">
       <rect>
        <x>30</x>
-       <y>250</y>
-       <width>451</width>
-       <height>61</height>
+       <y>300</y>
+       <width>611</width>
+       <height>91</height>
       </rect>
      </property>
      <property name="font">
       <font>
        <family>微软雅黑</family>
-       <pointsize>14</pointsize>
+       <pointsize>25</pointsize>
       </font>
      </property>
      <property name="layoutDirection">
@@ -338,15 +338,15 @@ QRadioButton::indicator {
      <property name="geometry">
       <rect>
        <x>30</x>
-       <y>470</y>
-       <width>451</width>
-       <height>61</height>
+       <y>620</y>
+       <width>611</width>
+       <height>91</height>
       </rect>
      </property>
      <property name="font">
       <font>
        <family>微软雅黑</family>
-       <pointsize>14</pointsize>
+       <pointsize>25</pointsize>
       </font>
      </property>
      <property name="layoutDirection">
@@ -394,16 +394,16 @@ QRadioButton::indicator {
     <widget class="QPushButton" name="pushButton_language_pply">
      <property name="geometry">
       <rect>
-       <x>690</x>
-       <y>340</y>
-       <width>211</width>
-       <height>41</height>
+       <x>900</x>
+       <y>440</y>
+       <width>351</width>
+       <height>91</height>
       </rect>
      </property>
      <property name="font">
       <font>
-       <family>宋体</family>
-       <pointsize>16</pointsize>
+       <family>微软雅黑</family>
+       <pointsize>36</pointsize>
        <bold>false</bold>
       </font>
      </property>
@@ -432,7 +432,7 @@ QPushButton:pressed {
      <rect>
       <x>20</x>
       <y>0</y>
-      <width>1111</width>
+      <width>1391</width>
       <height>91</height>
      </rect>
     </property>
@@ -449,57 +449,72 @@ QPushButton:pressed {
     <property name="title">
      <string/>
     </property>
-    <layout class="QGridLayout" name="gridLayout">
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_7">
-       <property name="minimumSize">
-        <size>
-         <width>41</width>
-         <height>41</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>41</width>
-         <height>41</height>
-        </size>
-       </property>
-       <property name="sizeIncrement">
-        <size>
-         <width>0</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">
+    <widget class="QLabel" name="label_7">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>60</width>
+       <height>60</height>
+      </rect>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>41</width>
+       <height>41</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>60</width>
+       <height>60</height>
+      </size>
+     </property>
+     <property name="sizeIncrement">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>10</pointsize>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">
 border-image: url(:/icon/icon_back.png);</string>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QLabel" name="label">
-       <property name="minimumSize">
-        <size>
-         <width>181</width>
-         <height>41</height>
-        </size>
-       </property>
-       <property name="font">
-        <font>
-         <family>黑体</family>
-         <pointsize>36</pointsize>
-         <bold>false</bold>
-        </font>
-       </property>
-       <property name="text">
-        <string>语言选择</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label">
+     <property name="geometry">
+      <rect>
+       <x>70</x>
+       <y>20</y>
+       <width>192</width>
+       <height>48</height>
+      </rect>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>181</width>
+       <height>41</height>
+      </size>
+     </property>
+     <property name="font">
+      <font>
+       <family>黑体</family>
+       <pointsize>36</pointsize>
+       <bold>false</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>语言选择</string>
+     </property>
+    </widget>
    </widget>
    <zorder>groupBox_2</zorder>
    <zorder>groupBox</zorder>
@@ -509,7 +524,7 @@ border-image: url(:/icon/icon_back.png);</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1240</width>
+     <width>1920</width>
      <height>33</height>
     </rect>
    </property>
@@ -517,7 +532,7 @@ border-image: url(:/icon/icon_back.png);</string>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <resources>
-  <include location="drawable/drawable.qrc"/>
+  <include location="../drawable/drawable.qrc"/>
  </resources>
  <connections/>
 </ui>
