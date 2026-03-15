@@ -155,18 +155,39 @@ class LanguageManager:
 
         if lang and lang.lower() not in ("zh_cn", "zh-hans", "cn"):
             qm_path = self._qm_path(lang)
+            print(f"[lang] apply: lang={lang!r} qm_path={qm_path!r} exists={os.path.exists(qm_path)}")
             if os.path.exists(qm_path):
-                if self._translator.load(qm_path):
+                loaded = self._translator.load(qm_path)
+                print(f"[lang] translator.load -> {loaded}")
+                if loaded:
                     QCoreApplication.installTranslator(self._translator)
+                    try:
+                        sample = QCoreApplication.translate("MainWindow", "语言选择")
+                        print(f"[lang] sample translate(MainWindow,'语言选择') -> {sample!r}")
+                    except Exception as e:
+                        print(f"[lang] sample translate error: {e}")
+            else:
+                print("[lang] missing qm file, skip installTranslator")
+        else:
+            print(f"[lang] apply: lang={lang!r} -> default zh_CN, no qm load")
 
         self.set_lang(lang)
         return True
 
     def _qm_path(self, lang: str) -> str:
-        candidates = [
-            _res_path(os.path.join("i18n", f"{lang}.qm")),
-            _res_path(f"{lang}.qm"),
-        ]
+        # 兼容 en/en_US 等别名
+        aliases = [lang]
+        low = (lang or "").lower()
+        if low == "en":
+            aliases.append("en_US")
+        elif low == "en_us":
+            aliases.append("en")
+
+        candidates = []
+        for key in aliases:
+            candidates.append(_res_path(os.path.join("i18n", f"{key}.qm")))
+            candidates.append(_res_path(f"{key}.qm"))
+
         for p in candidates:
             if os.path.exists(p):
                 return p

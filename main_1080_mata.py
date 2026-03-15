@@ -4800,6 +4800,14 @@ class Main1080Window(QWidget, Ui_Form):
         except Exception:
             pass
         try:
+            if getattr(self, "language_settings_widget", None):
+                ui = self.language_settings_widget.ui
+                lab = getattr(ui, "label_4", None)
+                txt = lab.text() if lab else None
+                print(f"[lang] language_settings label_4 text -> {txt!r}")
+        except Exception as e:
+            print(f"[lang] debug read label_4 error: {e}")
+        try:
             def _retranslate_widget(w):
                 if w is None:
                     return
