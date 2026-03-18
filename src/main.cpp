@@ -1344,7 +1344,8 @@ static void checkIceStallRecoveryNew() {
   const uint32_t nowMs = millis();
   const bool crushRun = motorActive[IDX_CRUSHED];
   const bool stirRun  = motorActive[IDX_ICE];
-  const bool augerRun = (motorActive[IDX_CRUSHED] || motorActive[IDX_ICE]);
+  // B 通道才驱动螺旋杆/传送带
+  const bool augerRun = motorActive[IDX_CRUSHED];
 
   handleStall(stallCrush, crushRun, nowMs, iceMotorForward,  iceMotorReverse);
   handleStall(stallStir,  stirRun,  nowMs, stirMotorForward, stirMotorReverse);
@@ -2596,11 +2597,11 @@ void setup() {
   // - CRUSH/AUGER 若是单路霍尔/光电：常见 1/2/20 等
   // - STIR(GPIO35) 若是单个磁铁：通常 1
   fsmCrush.bind("CRUSH", &encoderTotal1, PULSES_PER_REV_CRUSH, iceMotorStop,  iceMotorForward,  iceMotorReverse);
-  fsmCrush.enableStall = false; // 临时关闭卡死检测
+  fsmCrush.enableStall = true; // 临时关闭卡死检测
   fsmAuger.bind("AUGER", &encoderTotal2, PULSES_PER_REV_AUGER, augerMotorStop, augerMotorForward, augerMotorReverse);
-  fsmAuger.enableStall = false; // 临时关闭卡死检测
+  fsmAuger.enableStall = true; // 临时关闭卡死检测
   fsmStir.bind ("STIR",  &stirEncoderTotal, PULSES_PER_REV_STIR,  stirMotorStop,  stirMotorForward,  stirMotorReverse);
-  fsmStir.enableStall = false; // 临时关闭卡死检测
+  fsmStir.enableStall = true; // 临时关闭卡死检测
 
   // ===== 新版卡死检测：监测源初始化 =====
   stallCrush.tag = "ICE";
@@ -2665,7 +2666,7 @@ static bool idleWasActive = false;
 void loop() {
   // checkMotorsMoving();
   // 新版卡死检测（两路接近+一路霍尔）
-  // checkIceStallRecoveryNew(); // 临时关闭卡死脱困逻辑
+  checkIceStallRecoveryNew(); // 临时关闭卡死脱困逻辑
   // if (millis() - lastPing >= PING_INTERVAL_MS) {
   //   lastPing = millis();
   //   sendHeartbeat();
@@ -2910,22 +2911,30 @@ void checkLoops() {
             // Serial.println("状态: 01 (关闭1开2) 果酱正转");
           }
 
-          // 冰(方冰) —— A 通道：只开传送带/搅冰，不开碎冰电机
-          // else if (i == IDX_ICE) {
-          //   // 只有"所有水停 + 冰钥匙打开"才允许开
-          //   if (allPumpsStopped()) {
-          //     baseInit_judge[i] = true;
-          //     time_check_to_stop[i] = millis();
-          //     baselineWeights[i]      = Weights[i];
-          //     beforeDischargeWeights[i] = Weights[i];
-          //     lastrun=millis();
+          // 冰(方冰) —— A 通道：只开搅冰电机(7/8)，不动碎冰/螺旋杆
+          else if (i == IDX_ICE) {
+            // 只有“所有水停 + 冰钥匙打开”才允许开
+            if (ice_judge == 1 && allPumpsStopped()) {
+              baseInit_judge[i] = true;
+              time_check_to_stop[i] = millis();
+              max_time_to_stop[i] = calcChannelMaxMs(i, targetWeights[i]);
+              baselineWeights[i]      = Weights[i];
+              beforeDischargeWeights[i] = Weights[i];
+              lastrun = millis();
 
-          //     Serial.println("🟢 方冰/传送带 已放行（FSM接管）");
-          //     speed_judge = 1;
-          //   } else {
-          //     continue;
-          //   }
-          // }
+              // 仅开启搅冰正转
+              relayWrite(relayOffCmd_ICE_STIR_REV, 8);
+              delay(50);
+              relayWrite(relayOnCmd_ICE_STIR_FWD, 8);
+              delay(50);
+              Serial.println("🟢 A通道：搅冰电机已开启");
+
+              speed_judge = 1;
+              ice_judge   = 0;   // 防止重复开
+            } else {
+              continue;
+            }
+          }
 
           // 冰机
           else if (i == suib) {
