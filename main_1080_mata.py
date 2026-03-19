@@ -25,7 +25,7 @@ from PyQt5.QtWidgets import QDialog
 from PyQt5 import QtGui,QtCore
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QSize,QThread,QObject,QEvent,QSettings
 from PyQt5.QtGui import QFontDatabase, QFont, QImage, QPixmap
-from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QGridLayout, QScroller, QSizePolicy, QVBoxLayout, QLabel, QMessageBox,QGraphicsOpacityEffect,QProgressDialog,QProgressBar, QLineEdit
+from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QGridLayout, QScroller, QSizePolicy, QVBoxLayout, QLabel, QMessageBox,QGraphicsOpacityEffect,QProgressDialog,QProgressBar
 from PyQt5 import QtWidgets
 import MenuBtnStyle
 from bean.menu_shopping_cart_bean import MenuShoppingCartBean
@@ -45,7 +45,7 @@ from control.item_clean_load_week_mata import CleanWeekLoadMata
 from control.item_conduit_mata import ItemConduitMata
 from control.item_setting_local_message_record_mata import ItemSettingLocalMessageRecordMata
 from control.item_setting_local_tee_record_mata import ItemSettingLocalTeeRecordMata
-from control.login_mata import LoginMata, open_system_keyboard, close_system_keyboard
+from control.login_mata import LoginMata
 # from control.manager_keyboard_mata import ManagerKeyboardMata
 from control.manager_keyboard_mata import ManagerKeyboardMata as ManagerKeyboardOld  # 管理页老键盘（只接收 parent）
 from control.conduit_card_keyboard_mata import ManagerKeyboardMata as MaketeeKeyboard  # 泡茶页新键盘（title, x, y, parent）
@@ -108,8 +108,6 @@ LOW_STOCK_THRESHOLD_G = 50  # 任一所需通道余量 < 50g -> 置灰
 LOW_STOCK_POPUP_G = 100  # 余量低于此值 -> 弹绿色提醒框
 EXCLUDE_LOW_STOCK_LETTERS = {'L'}
 
-# === 更新菜单入口密码 ===
-MENU_UPDATE_PASSWORD = "123456"
 
 # === WooCommerce 连接配置（先直写，可跑通再放到设置里） ===
 WC_SITE = "https://xiliu.store"  # 例如 https://xiliu.store
@@ -1383,113 +1381,6 @@ class GreenConfirmBox(QDialog):
             cc = parent.mapToGlobal(parent.rect().center())
             dlg.move(cc.x() - dlg.width()//2, cc.y() - dlg.height()//2)
         return dlg.exec_() == QDialog.Accepted
-
-
-class MenuUpdatePasswordDialog(QDialog):
-    """更新菜单密码输入框（仅密码）"""
-    def __init__(self, parent=None, title="输入密码", prompt="请输入更新菜单密码"):
-        super().__init__(parent)
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
-        self.setAttribute(Qt.WA_TranslucentBackground, True)
-        self.setModal(True)
-        self.setObjectName("MenuUpdatePasswordDialog")
-
-        fid = QFontDatabase.addApplicationFont(
-            "fonts/AlibabaPuHuiTi-3/AlibabaPuHuiTi-3-55-Regular/AlibabaPuHuiTi-3-55-Regular.ttf"
-        )
-        fams = QFontDatabase.applicationFontFamilies(fid)
-        base_family = fams[0] if fams else "Microsoft YaHei"
-
-        root = QVBoxLayout(self)
-        root.setContentsMargins(14, 12, 14, 16)
-        root.setSpacing(0)
-        root.setSizeConstraint(QLayout.SetFixedSize)
-
-        panel = QWidget(self)
-        panel.setObjectName("msgPanel")
-        panel.setMinimumSize(QSize(560, 300))
-        panel.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        root.addWidget(panel)
-
-        lay = QVBoxLayout(panel)
-        lay.setContentsMargins(34, 28, 34, 26)
-        lay.setSpacing(14)
-
-        lab_title = QLabel(title, panel)
-        lab_title.setFont(QFont(base_family, 28, QFont.Black))
-        lab_title.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-        lab_title.setObjectName("title")
-        lay.addWidget(lab_title)
-
-        lab_text = QLabel(prompt, panel)
-        lab_text.setTextFormat(Qt.RichText)
-        lab_text.setWordWrap(True)
-        lab_text.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
-        lab_text.setFont(QFont(base_family, 20, QFont.DemiBold))
-        lab_text.setObjectName("content")
-        lay.addWidget(lab_text)
-
-        self.password_edit = QLineEdit(panel)
-        self.password_edit.setObjectName("passwordEdit")
-        self.password_edit.setEchoMode(QLineEdit.Password)
-        self.password_edit.setFont(QFont(base_family, 22, QFont.Bold))
-        self.password_edit.setFixedHeight(58)
-        self.password_edit.setAlignment(Qt.AlignHCenter)
-        self.password_edit.setPlaceholderText("请输入密码")
-        self.password_edit.returnPressed.connect(self.accept)
-        lay.addWidget(self.password_edit)
-
-        row = QHBoxLayout(); row.addStretch(1)
-        btn_no = QPushButton("取消", panel); btn_no.setObjectName("noBtn")
-        btn_yes = QPushButton("确定", panel); btn_yes.setObjectName("yesBtn")
-        btn_no.setFixedSize(210, 66); btn_yes.setFixedSize(210, 66)
-        btn_no.setFont(QFont(base_family, 20, QFont.Bold))
-        btn_yes.setFont(QFont(base_family, 20, QFont.Bold))
-        btn_no.clicked.connect(self.reject)
-        btn_yes.clicked.connect(self.accept)
-        row.addWidget(btn_no); row.addSpacing(14); row.addWidget(btn_yes); row.addStretch(1)
-        lay.addLayout(row)
-
-        self.setStyleSheet("""
-        QWidget#msgPanel { border-image: url(:/icon/order_dialog_background_2.png); }
-        QLabel#title   { color: #2C7A4B; }
-        QLabel#content { color: #2C7A4B; }
-        QLineEdit#passwordEdit {
-            background: rgba(255,255,255,0.92);
-            border: 2px solid #1FA463;
-            border-radius: 12px;
-            padding: 6px 12px;
-            color: #2C7A4B;
-        }
-        QPushButton#yesBtn {
-            background: #1FA463; color: #FFFFFF; border: none; border-radius: 33px;
-        }
-        QPushButton#yesBtn:hover  { background: #159355; }
-        QPushButton#yesBtn:pressed{ background: #0F7E49; }
-        QPushButton#noBtn  {
-            background: rgba(31,164,99,0.12); color: #1FA463; border: 2px solid #1FA463; border-radius: 33px;
-        }
-        QPushButton#noBtn:hover  { background: rgba(31,164,99,0.18); }
-        QPushButton#noBtn:pressed{ background: rgba(31,164,99,0.24); }
-        """)
-        self.adjustSize()
-
-    def showEvent(self, event):
-        super().showEvent(event)
-        QTimer.singleShot(0, self._focus_and_show_keyboard)
-
-    def _focus_and_show_keyboard(self):
-        self.password_edit.setFocus()
-        try:
-            open_system_keyboard()
-        except Exception:
-            pass
-
-    def closeEvent(self, event):
-        try:
-            close_system_keyboard()
-        finally:
-            super().closeEvent(event)
 
 
 class _MenuRefreshBridge(QObject):
@@ -6956,7 +6847,7 @@ class Main1080Window(QWidget, Ui_Form):
         btn_menu = QPushButton("更新菜单")
         btn_menu.setFixedHeight(45)
         btn_menu.setStyleSheet("QPushButton{background:#2196F3;color:white;border-radius:8px;font-size:16px;}")
-        btn_menu.clicked.connect(lambda: (dlg.accept(), self._try_open_menu_update_page()))
+        btn_menu.clicked.connect(lambda: (dlg.accept(), self._open_menu_update_page()))
         layout.addWidget(btn_menu)
         
         dlg.exec_()
@@ -6970,23 +6861,6 @@ class Main1080Window(QWidget, Ui_Form):
             self.verticalLayout_menu_update_page.addWidget(self._menu_update_widget)
         self.stackedWidget_setting.setCurrentWidget(self.setting_menu_update)
 
-    def _try_open_menu_update_page(self):
-        """更新菜单入口：校验密码后再打开页面"""
-        try:
-            dlg = MenuUpdatePasswordDialog(self, title="更新菜单", prompt="请输入更新菜单密码")
-            # 居中
-            cc = self.mapToGlobal(self.rect().center())
-            dlg.move(cc.x() - dlg.width() // 2, cc.y() - dlg.height() // 2)
-            if dlg.exec_() != QDialog.Accepted:
-                return
-            pwd = dlg.password_edit.text().strip()
-            if pwd != MENU_UPDATE_PASSWORD:
-                GreenMessageBox.warning(self, "提示", "密码错误，请重新输入")
-                return
-            self._open_menu_update_page()
-        except Exception as e:
-            print("[MenuUpdate] password dialog error:", e)
-            GreenMessageBox.warning(self, "异常", "打开密码输入框失败")
     
     def _back_from_menu_update(self):
         """从菜单更新页返回设置首页"""
