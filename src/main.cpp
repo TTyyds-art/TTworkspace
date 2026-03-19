@@ -48,15 +48,15 @@ static QueueHandle_t relayQueue = nullptr;
 Adafruit_PN532 nfc(PN532_SDA, PN532_SCL);
 
 // ===== 碎冰接近开关 + 螺旋杆霍尔编码器 =====
-// 碎冰：接近开关，NPN 常闭，检测到金属时输出拉高（高电平有效）
+// 碎冰：接近开关，初始低电平，检测到金属时输出拉高（高电平有效）
 // 螺旋杆：霍尔编码器，输出脉冲（上升沿有效）
 // 接线建议：棕=VCC(3.3V/5V 视模块)，蓝=GND，黑=信号 -> MCU 输入（建议外部上拉）
-const int ENC1_A_PIN = 32;   // 碎冰电机接近开关信号（高电平有效）
+const int ENC1_A_PIN = 32;   // 碎冰电机接近开关信号（低电平有效）
 const int ENC2_A_PIN = 33;   // 螺旋杆霍尔编码器信号（上升沿有效）
 
-// ===== 搅动电机接近式开关（GPIO35，输入专用口，无内部上拉） =====
-// 传感器特性：NPN 常闭，检测到金属时输出拉高（高电平有效）
-const int STIR_ENC_PIN = 35; // 搅动电机接近式开关信号
+// ===== 搅动电机接近式开关（GPIO25，支持内部下拉） =====
+// 传感器特性：初始低电平，检测到金属时输出拉高（高电平有效）
+const int STIR_ENC_PIN = 25; // 搅动电机接近式开关信号
 
 // ===== 清洁主泵流量计（GPIO27，中断脉冲输入，上升沿有效） =====
 const int CLEAN_FLOW_PIN = 27; // 清洁主泵流量计信号
@@ -714,12 +714,12 @@ const byte relayOffCmd_4[8][8] = {
 
 
 const byte CleanOnCmd[2][8]={
-  {0x03, 0x06, 0x00, 0x06, 0x00, 0x01, 0xA9, 0xEA },
-  {0x03, 0x06, 0x00, 0x07, 0x00, 0x01, 0xF8, 0x2A },
+  {0x03, 0x06, 0x00, 0x06, 0x00, 0x01, 0xA9, 0xE9 },
+  {0x03, 0x06, 0x00, 0x07, 0x00, 0x01, 0xF8, 0x29 },
 };
 const byte CleanOffCmd[2][8]={
-  {0x03, 0x06, 0x00, 0x06, 0x00, 0x00, 0x68, 0x2A },
-  {0x03, 0x06, 0x00, 0x07, 0x00, 0x00, 0x39, 0xEA },
+  {0x03, 0x06, 0x00, 0x06, 0x00, 0x00, 0x68, 0x29 },
+  {0x03, 0x06, 0x00, 0x07, 0x00, 0x00, 0x39, 0xE9 },
 };
 
 float flow_rata[3]={6.2,4.2,32};
@@ -1090,7 +1090,7 @@ void IRAM_ATTR encoder2ISR() {
   encoderTotal2++;
 }
 
-// 搅动电机接近式开关 ISR（GPIO35，高电平有效）
+// 搅动电机接近式开关 ISR（GPIO25，高电平有效）
 void IRAM_ATTR stirEncoderISR() {
   const uint32_t nowUs = micros();
   if (nowUs - stirLastPulseUs < STIR_MIN_PULSE_INTERVAL_US) {
@@ -1344,12 +1344,12 @@ static void checkIceStallRecoveryNew() {
   const uint32_t nowMs = millis();
   const bool crushRun = motorActive[IDX_CRUSHED];
   const bool stirRun  = motorActive[IDX_ICE];
-  // B 通道才驱动螺旋杆/传送带
-  const bool augerRun = motorActive[IDX_CRUSHED];
+  const bool augerRun = (motorActive[IDX_CRUSHED] || motorActive[IDX_ICE]);
 
   handleStall(stallCrush, crushRun, nowMs, iceMotorForward,  iceMotorReverse);
   handleStall(stallStir,  stirRun,  nowMs, stirMotorForward, stirMotorReverse);
-  handleStall(stallAuger, augerRun, nowMs, augerMotorForward, augerMotorReverse);
+  // 传送带/螺旋杆：暂时关闭卡死脱困
+  // handleStall(stallAuger, augerRun, nowMs, augerMotorForward, augerMotorReverse);
 }
 
 // 封装好的检测函数：在 loop() 里反复调用
@@ -2577,11 +2577,11 @@ void setup() {
   // Serial.println(WiFi.macAddress());
 
   
-  pinMode(ENC1_A_PIN, INPUT_PULLUP);  // 接近开关信号（高电平有效），需外部上拉更稳
+  pinMode(ENC1_A_PIN, INPUT_PULLDOWN);  // 接近开关信号（高电平有效），需外部下拉更稳
   pinMode(ENC2_A_PIN, INPUT_PULLUP);
 
-  // PATCH: 搅动电机光电传感器（GPIO35 无内部上拉，需外部上拉/开漏等硬件保证）
-  pinMode(STIR_ENC_PIN, INPUT_PULLUP);
+  // PATCH: 搅动电机接近式开关（GPIO25 支持内部下拉）
+  pinMode(STIR_ENC_PIN, INPUT_PULLDOWN);
 
   // 清洁主泵流量计：上拉输入（若为开漏/干接点，建议外部上拉更稳）
   pinMode(CLEAN_FLOW_PIN, INPUT_PULLUP);
@@ -2597,11 +2597,11 @@ void setup() {
   // - CRUSH/AUGER 若是单路霍尔/光电：常见 1/2/20 等
   // - STIR(GPIO35) 若是单个磁铁：通常 1
   fsmCrush.bind("CRUSH", &encoderTotal1, PULSES_PER_REV_CRUSH, iceMotorStop,  iceMotorForward,  iceMotorReverse);
-  fsmCrush.enableStall = true; // 临时关闭卡死检测
+  fsmCrush.enableStall = true;
   fsmAuger.bind("AUGER", &encoderTotal2, PULSES_PER_REV_AUGER, augerMotorStop, augerMotorForward, augerMotorReverse);
-  fsmAuger.enableStall = true; // 临时关闭卡死检测
+  fsmAuger.enableStall = true;
   fsmStir.bind ("STIR",  &stirEncoderTotal, PULSES_PER_REV_STIR,  stirMotorStop,  stirMotorForward,  stirMotorReverse);
-  fsmStir.enableStall = true; // 临时关闭卡死检测
+  fsmStir.enableStall = true;
 
   // ===== 新版卡死检测：监测源初始化 =====
   stallCrush.tag = "ICE";
@@ -2662,11 +2662,40 @@ static bool idleJamRunning = false;
 static uint32_t idleJamStartMs = 0;
 static bool idleWasActive = false;
 
+// ===== 接近式开关电平变化监测（边沿打印） =====
+static inline void debugProximityEdge() {
+  static int lastEnc1 = -1;
+  static int lastStir = -1;
+  static uint32_t lastPrintMs = 0;
+  const int curEnc1 = digitalRead(ENC1_A_PIN);
+  const int curStir = digitalRead(STIR_ENC_PIN);
+  const uint32_t nowMs = millis();
+
+  if (lastEnc1 < 0) lastEnc1 = curEnc1;
+  if (lastStir < 0) lastStir = curStir;
+
+  if (curEnc1 != lastEnc1) {
+    Serial.printf("ENC1 change: %d -> %d\n", lastEnc1, curEnc1);
+    lastEnc1 = curEnc1;
+  }
+  if (curStir != lastStir) {
+    Serial.printf("STIR change: %d -> %d\n", lastStir, curStir);
+    lastStir = curStir;
+  }
+
+  // 无变化也定时打印（200ms）
+  if (nowMs - lastPrintMs >= 200) {
+    Serial.printf("ENC1 level: %d, STIR level: %d\n", curEnc1, curStir);
+    lastPrintMs = nowMs;
+  }
+}
+
 
 void loop() {
+  debugProximityEdge();
   // checkMotorsMoving();
   // 新版卡死检测（两路接近+一路霍尔）
-  checkIceStallRecoveryNew(); // 临时关闭卡死脱困逻辑
+  checkIceStallRecoveryNew();
   // if (millis() - lastPing >= PING_INTERVAL_MS) {
   //   lastPing = millis();
   //   sendHeartbeat();
@@ -2911,30 +2940,22 @@ void checkLoops() {
             // Serial.println("状态: 01 (关闭1开2) 果酱正转");
           }
 
-          // 冰(方冰) —— A 通道：只开搅冰电机(7/8)，不动碎冰/螺旋杆
-          else if (i == IDX_ICE) {
-            // 只有“所有水停 + 冰钥匙打开”才允许开
-            if (ice_judge == 1 && allPumpsStopped()) {
-              baseInit_judge[i] = true;
-              time_check_to_stop[i] = millis();
-              max_time_to_stop[i] = calcChannelMaxMs(i, targetWeights[i]);
-              baselineWeights[i]      = Weights[i];
-              beforeDischargeWeights[i] = Weights[i];
-              lastrun = millis();
+          // 冰(方冰) —— A 通道：只开传送带/搅冰，不开碎冰电机
+          // else if (i == IDX_ICE) {
+          //   // 只有"所有水停 + 冰钥匙打开"才允许开
+          //   if (allPumpsStopped()) {
+          //     baseInit_judge[i] = true;
+          //     time_check_to_stop[i] = millis();
+          //     baselineWeights[i]      = Weights[i];
+          //     beforeDischargeWeights[i] = Weights[i];
+          //     lastrun=millis();
 
-              // 仅开启搅冰正转
-              relayWrite(relayOffCmd_ICE_STIR_REV, 8);
-              delay(50);
-              relayWrite(relayOnCmd_ICE_STIR_FWD, 8);
-              delay(50);
-              Serial.println("🟢 A通道：搅冰电机已开启");
-
-              speed_judge = 1;
-              ice_judge   = 0;   // 防止重复开
-            } else {
-              continue;
-            }
-          }
+          //     Serial.println("🟢 方冰/传送带 已放行（FSM接管）");
+          //     speed_judge = 1;
+          //   } else {
+          //     continue;
+          //   }
+          // }
 
           // 冰机
           else if (i == suib) {
