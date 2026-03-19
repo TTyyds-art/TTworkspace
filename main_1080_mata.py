@@ -25,7 +25,7 @@ from PyQt5.QtWidgets import QDialog
 from PyQt5 import QtGui,QtCore
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QSize,QThread,QObject,QEvent,QSettings
 from PyQt5.QtGui import QFontDatabase, QFont, QImage, QPixmap
-from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QGridLayout, QScroller, QSizePolicy, QVBoxLayout, QLabel, QMessageBox,QGraphicsOpacityEffect,QProgressDialog,QProgressBar
+from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QGridLayout, QScroller, QSizePolicy, QVBoxLayout, QLabel, QMessageBox,QGraphicsOpacityEffect,QProgressDialog,QProgressBar, QLineEdit
 from PyQt5 import QtWidgets
 import MenuBtnStyle
 from bean.menu_shopping_cart_bean import MenuShoppingCartBean
@@ -45,7 +45,7 @@ from control.item_clean_load_week_mata import CleanWeekLoadMata
 from control.item_conduit_mata import ItemConduitMata
 from control.item_setting_local_message_record_mata import ItemSettingLocalMessageRecordMata
 from control.item_setting_local_tee_record_mata import ItemSettingLocalTeeRecordMata
-from control.login_mata import LoginMata
+from control.login_mata import LoginMata, open_system_keyboard, close_system_keyboard
 # from control.manager_keyboard_mata import ManagerKeyboardMata
 from control.manager_keyboard_mata import ManagerKeyboardMata as ManagerKeyboardOld  # 管理页老键盘（只接收 parent）
 from control.conduit_card_keyboard_mata import ManagerKeyboardMata as MaketeeKeyboard  # 泡茶页新键盘（title, x, y, parent）
@@ -72,6 +72,7 @@ from tool_utils import util
 from ui_1080_py.Ui_main_1080_ui import Ui_Form
 from threads.SerialThread import SerialThread
 from threads.conduit_serial_thread import ConduitSerialThread
+from serial.tools import list_ports
 # from threads.manager_second_screen_conduit_thread import ManagerSecondScreenConduit
 from control.maketee_control import MaketeeController
 
@@ -106,6 +107,9 @@ SUGAR_NAME_KEYS = {"糖", "糖浆", "果糖", "蔗糖", "黑糖", "红糖", "白
 LOW_STOCK_THRESHOLD_G = 50  # 任一所需通道余量 < 50g -> 置灰
 LOW_STOCK_POPUP_G = 100  # 余量低于此值 -> 弹绿色提醒框
 EXCLUDE_LOW_STOCK_LETTERS = {'L'}
+
+# === 更新菜单入口密码 ===
+MENU_UPDATE_PASSWORD = "123456"
 
 # === WooCommerce 连接配置（先直写，可跑通再放到设置里） ===
 WC_SITE = "https://xiliu.store"  # 例如 https://xiliu.store
@@ -1381,6 +1385,113 @@ class GreenConfirmBox(QDialog):
         return dlg.exec_() == QDialog.Accepted
 
 
+class MenuUpdatePasswordDialog(QDialog):
+    """更新菜单密码输入框（仅密码）"""
+    def __init__(self, parent=None, title="输入密码", prompt="请输入更新菜单密码"):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setModal(True)
+        self.setObjectName("MenuUpdatePasswordDialog")
+
+        fid = QFontDatabase.addApplicationFont(
+            "fonts/AlibabaPuHuiTi-3/AlibabaPuHuiTi-3-55-Regular/AlibabaPuHuiTi-3-55-Regular.ttf"
+        )
+        fams = QFontDatabase.applicationFontFamilies(fid)
+        base_family = fams[0] if fams else "Microsoft YaHei"
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(14, 12, 14, 16)
+        root.setSpacing(0)
+        root.setSizeConstraint(QLayout.SetFixedSize)
+
+        panel = QWidget(self)
+        panel.setObjectName("msgPanel")
+        panel.setMinimumSize(QSize(560, 300))
+        panel.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        root.addWidget(panel)
+
+        lay = QVBoxLayout(panel)
+        lay.setContentsMargins(34, 28, 34, 26)
+        lay.setSpacing(14)
+
+        lab_title = QLabel(title, panel)
+        lab_title.setFont(QFont(base_family, 28, QFont.Black))
+        lab_title.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        lab_title.setObjectName("title")
+        lay.addWidget(lab_title)
+
+        lab_text = QLabel(prompt, panel)
+        lab_text.setTextFormat(Qt.RichText)
+        lab_text.setWordWrap(True)
+        lab_text.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        lab_text.setFont(QFont(base_family, 20, QFont.DemiBold))
+        lab_text.setObjectName("content")
+        lay.addWidget(lab_text)
+
+        self.password_edit = QLineEdit(panel)
+        self.password_edit.setObjectName("passwordEdit")
+        self.password_edit.setEchoMode(QLineEdit.Password)
+        self.password_edit.setFont(QFont(base_family, 22, QFont.Bold))
+        self.password_edit.setFixedHeight(58)
+        self.password_edit.setAlignment(Qt.AlignHCenter)
+        self.password_edit.setPlaceholderText("请输入密码")
+        self.password_edit.returnPressed.connect(self.accept)
+        lay.addWidget(self.password_edit)
+
+        row = QHBoxLayout(); row.addStretch(1)
+        btn_no = QPushButton("取消", panel); btn_no.setObjectName("noBtn")
+        btn_yes = QPushButton("确定", panel); btn_yes.setObjectName("yesBtn")
+        btn_no.setFixedSize(210, 66); btn_yes.setFixedSize(210, 66)
+        btn_no.setFont(QFont(base_family, 20, QFont.Bold))
+        btn_yes.setFont(QFont(base_family, 20, QFont.Bold))
+        btn_no.clicked.connect(self.reject)
+        btn_yes.clicked.connect(self.accept)
+        row.addWidget(btn_no); row.addSpacing(14); row.addWidget(btn_yes); row.addStretch(1)
+        lay.addLayout(row)
+
+        self.setStyleSheet("""
+        QWidget#msgPanel { border-image: url(:/icon/order_dialog_background_2.png); }
+        QLabel#title   { color: #2C7A4B; }
+        QLabel#content { color: #2C7A4B; }
+        QLineEdit#passwordEdit {
+            background: rgba(255,255,255,0.92);
+            border: 2px solid #1FA463;
+            border-radius: 12px;
+            padding: 6px 12px;
+            color: #2C7A4B;
+        }
+        QPushButton#yesBtn {
+            background: #1FA463; color: #FFFFFF; border: none; border-radius: 33px;
+        }
+        QPushButton#yesBtn:hover  { background: #159355; }
+        QPushButton#yesBtn:pressed{ background: #0F7E49; }
+        QPushButton#noBtn  {
+            background: rgba(31,164,99,0.12); color: #1FA463; border: 2px solid #1FA463; border-radius: 33px;
+        }
+        QPushButton#noBtn:hover  { background: rgba(31,164,99,0.18); }
+        QPushButton#noBtn:pressed{ background: rgba(31,164,99,0.24); }
+        """)
+        self.adjustSize()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        QTimer.singleShot(0, self._focus_and_show_keyboard)
+
+    def _focus_and_show_keyboard(self):
+        self.password_edit.setFocus()
+        try:
+            open_system_keyboard()
+        except Exception:
+            pass
+
+    def closeEvent(self, event):
+        try:
+            close_system_keyboard()
+        finally:
+            super().closeEvent(event)
+
+
 class _MenuRefreshBridge(QObject):
     """合并 Woo 线程里的多次 menu_delta，定时触发一次 commit() 刷新。"""
     commit = pyqtSignal(list)  # 刷新时把这段时间内变更过的饮品名列表带出去
@@ -1840,6 +1951,38 @@ class Main1080Window(QWidget, Ui_Form):
     #订单卡片
     order_card_style = pyqtSignal()
 
+    def _log_serial_ports(self, reason: str = ""):
+        """
+        诊断日志：列出当前所有串口及其 VID/PID/描述/硬件ID。
+        仅用于排查端口写死/枚举失败问题，不改变业务逻辑。
+        """
+        try:
+            ports = list(list_ports.comports())
+        except Exception as e:
+            print(f"[SerialScan] failed to list ports: {e}")
+            return None
+
+        tag = f" reason={reason}" if reason else ""
+        print(f"[SerialScan] found {len(ports)} ports.{tag}")
+        ch340_port = None
+        for p in ports:
+            # p.vid/pid 可能为 None
+            vid = f"0x{p.vid:04X}" if getattr(p, "vid", None) is not None else "None"
+            pid = f"0x{p.pid:04X}" if getattr(p, "pid", None) is not None else "None"
+            print(
+                "[SerialScan] "
+                f"device={p.device}, vid={vid}, pid={pid}, "
+                f"desc={p.description}, hwid={p.hwid}"
+            )
+            try:
+                if p.vid == 0x1A86 and p.pid in (0x7523, 0x5523):
+                    ch340_port = p.device
+            except Exception:
+                pass
+        if not ch340_port:
+            print("[SerialScan] CH340 not found")
+        return ch340_port
+
     def __init__(self, app, parent=None):
         super(Main1080Window, self).__init__(parent)
         print(sys.executable)  # 输出当前 Python 解释器路径
@@ -1926,100 +2069,21 @@ class Main1080Window(QWidget, Ui_Form):
 
         self.setupUi(self)
 
+        ch340_port = self._log_serial_ports(reason="init")
+        if ch340_port:
+            self.com1 = ch340_port
+            print(f"[SerialScan] use CH340 port -> {self.com1}")
+        else:
+            GreenMessageBox.warning(
+                self,
+                "设备未就绪",
+                "未识别到 ESP32(CH340) 串口，请检查连接/驱动后重试。"
+            )
         self._lang_mgr = LanguageManager(app)
         self._lang_mgr.apply(self._lang_mgr.get_lang())
         # self._brew_timer = QTimer(self); self._brew_timer.timeout.connect(self._on_brew_tick)
 
-
-         # === 杯型图标 & cup 缓存 ===
-        self.icon_cup_finished = QtGui.QIcon(':/icon/Finished_Cup.png')
-        self.icon_cup_shaker   = QtGui.QIcon(':/icon/Shaker_Cup.png')
-        self.icon_cup_smoothie = QtGui.QIcon(':/icon/Smoothie_Cup.png')
-        self._cup_by_drink = {}      # {饮品名(规整后): cup字符串}
-
-
-        btn = getattr(self, "btn_begin_make", None)
-        if btn is not None:
-            print("[CupDebug] init: btn_begin_make.icon().isNull =",
-                  btn.icon().isNull())
-
-        # 让进度条能显示文字（如果你还没开）
-        try:
-            self.progressBar.setTextVisible(True)
-        except Exception:
-            pass
-
-        # 创建控制器，并把串口传进去
-        self.maketee_ctl = MaketeeController(ui=self, serial_thread=self.conduit_serial_thread)
-
-        # 把【泡茶】按钮交给控制器（你的按钮名是 btn_maketee_out）
-        self.maketee_ctl.wire_buttons(self.btn_maketee_out)
-
-        for sw in (
-            getattr(self, "stackedWidget", None),
-            getattr(self, "stackedWidget_2", None),
-            getattr(self, "stackedWidget_clean", None),
-            getattr(self, "stackedWidget_setting", None),
-        ):
-            if sw:
-                sw.currentChanged.connect(lambda *_: self._close_small_keyboard())
-
-        self._low_stock_notified = set()         # 已提醒过的通道，避免反复弹
-        self.low_stock_timer = QtCore.QTimer(self)
-        self.low_stock_timer.setInterval(1_000) # 10s 查一次
-        self.low_stock_timer.timeout.connect(self._check_low_stock_popup)
-        self.low_stock_timer.start()
-        QtCore.QTimer.singleShot(500, self._check_low_stock_popup)  # 启动时先查一次
-
-        # 允许“离开手动出茶页也刷新菜单”
-        self._menu_offpage_refresh = True
-
-        # === 选中/刷新状态管理（新增） ===
-        self.select_order_tee_bean = None         # 当前选中的饮品
-        self.selected_order_id = None             # 用于刷新后的选中还原（假设 bean 有 id 字段）
-        self.order_card_widgets = []              # 当前渲染出的卡片列表
-        self._refresh_locked = False              # 制作期间暂停刷新，防止选中被冲掉
-
-        # --- 制作完成小贴士（tips）相关 ---
-        self._tips_by_drink = {}
-        self._current_make_drink_name = ""
-        self._current_make_tips = ""
-
-        # 从菜单 JSON 中预加载每个饮品对应的 tips
-        try:
-            menu_path = _menu_path()
-            import json, os
-            if os.path.exists(menu_path):
-                with open(menu_path, "r", encoding="utf-8") as f:
-                    items = json.load(f) or []
-                for item in items:
-                    name = str(item.get("Name", "")).strip()
-                    tips = str(item.get("tips", "")).strip()
-                    if name and tips:
-                        self._tips_by_drink[name] = tips
-                print(f"[TipsDebug] 加载 tips 完成，共 {len(self._tips_by_drink)} 条")
-            else:
-                print(f"[TipsDebug] 菜单文件不存在：{menu_path}")
-        except Exception as e:
-            import traceback; traceback.print_exc()
-            print("[TipsDebug] 加载 tips 失败：", e)
-
-        self.maketee_selected_row = None    # 泡茶页当前选中的配方（bean/row）
-
-        self._ice_locking_dlg = None   # 记住“正在自动摆脱中”的弹窗
-
-        # 手动把按钮点击连接到已有的槽函数
-        # self.btn_maketee_out.clicked.connect(self.on_maketee_brew_clicked)
-
-        # 简单的UI标签显示调试文本（放到你能看见的位置；不合适就只用 print）
-        self.debug_last_msg = QLabel("Woo 调试：尚未连接")
-        self.debug_last_msg.setStyleSheet("color:#1FA463; font-size:16px;")
-        try:
-            # 如果你有合适的布局容器，就 addWidget；没有就先忽略这两行
-            self.order_content_Layout.addWidget(self.debug_last_msg)
-        except Exception:
-            pass
-        # 启动 Woo 调试线程
+        # 初始化 Woo 调试线程，避免后续 AttributeError
         self.woo_dbg = WooDebugThread(WC_SITE, WC_CK, WC_CS, poll_sec=5, parent=self)
         self.woo_dbg.got_text.connect(self._on_woo_debug_text)
         # self.woo_dbg.menu_changed.connect(self._refresh_manual_menu)  # ← 新增
@@ -6892,7 +6956,7 @@ class Main1080Window(QWidget, Ui_Form):
         btn_menu = QPushButton("更新菜单")
         btn_menu.setFixedHeight(45)
         btn_menu.setStyleSheet("QPushButton{background:#2196F3;color:white;border-radius:8px;font-size:16px;}")
-        btn_menu.clicked.connect(lambda: (dlg.accept(), self._open_menu_update_page()))
+        btn_menu.clicked.connect(lambda: (dlg.accept(), self._try_open_menu_update_page()))
         layout.addWidget(btn_menu)
         
         dlg.exec_()
@@ -6905,6 +6969,24 @@ class Main1080Window(QWidget, Ui_Form):
             self._menu_update_widget.menu_changed.connect(self._on_menu_data_changed)
             self.verticalLayout_menu_update_page.addWidget(self._menu_update_widget)
         self.stackedWidget_setting.setCurrentWidget(self.setting_menu_update)
+
+    def _try_open_menu_update_page(self):
+        """更新菜单入口：校验密码后再打开页面"""
+        try:
+            dlg = MenuUpdatePasswordDialog(self, title="更新菜单", prompt="请输入更新菜单密码")
+            # 居中
+            cc = self.mapToGlobal(self.rect().center())
+            dlg.move(cc.x() - dlg.width() // 2, cc.y() - dlg.height() // 2)
+            if dlg.exec_() != QDialog.Accepted:
+                return
+            pwd = dlg.password_edit.text().strip()
+            if pwd != MENU_UPDATE_PASSWORD:
+                GreenMessageBox.warning(self, "提示", "密码错误，请重新输入")
+                return
+            self._open_menu_update_page()
+        except Exception as e:
+            print("[MenuUpdate] password dialog error:", e)
+            GreenMessageBox.warning(self, "异常", "打开密码输入框失败")
     
     def _back_from_menu_update(self):
         """从菜单更新页返回设置首页"""

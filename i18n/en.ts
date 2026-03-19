@@ -15,7 +15,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_clean_week_load_ui.py" line="475" />
         <source>剩余时间</source>
-        <translation>Time remaining</translation>
+        <translation>Time Left</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_clean_week_load_ui.py" line="476" />
@@ -35,7 +35,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_clean_week_load_ui.py" line="482" />
         <source>静置</source>
-        <translation>Rest</translation>
+        <translation>Settle</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_clean_week_load_ui.py" line="478" />
@@ -75,7 +75,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_manager_keyboard_ui.py" line="175" />
         <source>确定</source>
-        <translation>Confirm</translation>
+        <translation>OK</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_manager_keyboard_ui.py" line="170" />
@@ -105,22 +105,22 @@
     <message>
         <location filename="../ui_1080_py/Ui_conduit_card_ui.py" line="177" />
         <source>红茶</source>
-        <translation>Black tea</translation>
+        <translation>Black Tea</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_conduit_card_maketee_ui.py" line="131" />
         <source>泡制时长</source>
-        <translation>Brew time</translation>
+        <translation>Brew Time</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_conduit_card_maketee_ui.py" line="132" />
         <source>30min</source>
-        <translation>30 min</translation>
+        <translation>30min</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_conduit_card_ui.py" line="178" />
         <source>剩余量</source>
-        <translation>Remaining amount</translation>
+        <translation>Remaining</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_conduit_dialog_ui.py" line="248" />
@@ -130,7 +130,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_conduit_card_ui.py" line="180" />
         <source>到期时间</source>
-        <translation>Expiration time</translation>
+        <translation>Expiry Date</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_conduit_card_ui.py" line="181" />
@@ -165,7 +165,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_conduit_dialog_ui.py" line="246" />
         <source>速度：</source>
-        <translation>Speed:</translation>
+        <translation>Speed</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_conduit_dialog_ui.py" line="247" />
@@ -180,7 +180,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_conduit_dialog_ui.py" line="250" />
         <source>应用：</source>
-        <translation>Application:</translation>
+        <translation>App</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_conduit_dialog_ui.py" line="251" />
@@ -200,7 +200,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_conduit_new_dialog_ui.py" line="549" />
         <source>剩余量：</source>
-        <translation>Remaining amount:</translation>
+        <translation>Remaining:</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_conduit_new_dialog_ui.py" line="550" />
@@ -220,7 +220,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_conduit_new_dialog_ui.py" line="556" />
         <source>有效期：</source>
-        <translation>Valid until:</translation>
+        <translation>Valid Until:</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_conduit_new_dialog_ui.py" line="564" />
@@ -240,7 +240,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_conduit_new_dialog_ui.py" line="567" />
         <source>分</source>
-        <translation>Points</translation>
+        <translation>Min</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_conduit_new_dialog_ui.py" line="561" />
@@ -255,7 +255,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_conduit_new_dialog_ui.py" line="568" />
         <source>补料红色预警值：</source>
-        <translation>Red Alert Threshold for Feeding:</translation>
+        <translation>Red Alert Threshold</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_manager_keyboard_ui.py" line="163" />
@@ -270,7 +270,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_conduit_new_dialog_ui.py" line="571" />
         <source>补料黄色预警值：</source>
-        <translation>Feed yellow warning threshold:</translation>
+        <translation>Yellow Refill Alert</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_item_notice_message_ui.py" line="94" />
@@ -305,7 +305,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_item_setting_local_tee_record_ui.py" line="79" />
         <source>出茶状态</source>
-        <translation>Tea dispensing status</translation>
+        <translation>Dispensing Status</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_login_ui.py" line="197" />
@@ -355,7 +355,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3002" />
         <source>奶茶制作</source>
-        <translation>Milk Tea Making</translation>
+        <translation>Make Milk Tea</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3444" />
@@ -365,7 +365,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3004" />
         <source>北京市朝阳区东三环喜六奶茶店</source>
-        <translation>Xiliu Milk Tea Shop, East Third Ring Road, Chaoyang District, Beijing</translation>
+        <translation>Xiliu Store</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3005" />
@@ -375,7 +375,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3006" />
         <source>12月4日</source>
-        <translation>December 4</translation>
+        <translation>Dec 4</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3007" />
@@ -400,27 +400,27 @@
     <message>
         <location filename="../ui_1080_py/Ui_second_screen_ui.py" line="236" />
         <source>ON</source>
-        <translation>On</translation>
+        <translation>ON</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_second_screen_ui.py" line="237" />
         <source>物料紧缺</source>
-        <translation>Material shortage</translation>
+        <translation>Material Shortage</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_second_screen_ui.py" line="238" />
         <source>物料不足</source>
-        <translation>Insufficient materials</translation>
+        <translation>Insufficient Materials</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_second_screen_ui.py" line="239" />
         <source>物料充足</source>
-        <translation>Sufficient materials</translation>
+        <translation>Stock Sufficient</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_second_screen_ui.py" line="240" />
         <source>物料屏蔽</source>
-        <translation>Material Blocking</translation>
+        <translation>Material Block</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3017" />
@@ -430,7 +430,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3018" />
         <source>奶茶最新品上线啦！</source>
-        <translation>New milk tea now available!</translation>
+        <translation>New Milk Tea</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_order_dialog_1_ui.py" line="187" />
@@ -450,7 +450,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3023" />
         <source>￥25.00</source>
-        <translation>¥25.00</translation>
+        <translation>￥25.00</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3024" />
@@ -460,12 +460,12 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3025" />
         <source>￥20.00</source>
-        <translation>¥20.00</translation>
+        <translation>￥20.00</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3026" />
         <source>糖量</source>
-        <translation>Sugar Level</translation>
+        <translation>Sugar</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3027" />
@@ -475,27 +475,27 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3028" />
         <source>五分糖</source>
-        <translation>50% sugar</translation>
+        <translation>Half Sugar</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3029" />
         <source>三分糖</source>
-        <translation>30% sugar</translation>
+        <translation>30% Sugar</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3030" />
         <source>推荐添加小料</source>
-        <translation>Recommended toppings</translation>
+        <translation>Recommended Toppings</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3031" />
         <source>脆波波</source>
-        <translation>Popping boba</translation>
+        <translation>Crystal Boba</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3032" />
         <source>椰果</source>
-        <translation>Nata de coco</translation>
+        <translation>Coconut Jelly</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3033" />
@@ -520,17 +520,17 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3037" />
         <source>少冰</source>
-        <translation>Less ice</translation>
+        <translation>Less Ice</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3038" />
         <source>正常冰</source>
-        <translation>Regular ice</translation>
+        <translation>Regular Ice</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3039" />
         <source>常温</source>
-        <translation>Room temperature</translation>
+        <translation>Room temp</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3040" />
@@ -540,7 +540,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3041" />
         <source>￥</source>
-        <translation>¥</translation>
+        <translation>￥</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3042" />
@@ -555,12 +555,12 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3044" />
         <source>加入购物车</source>
-        <translation>Add to cart</translation>
+        <translation>Add to Cart</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3045" />
         <source>  结 算</source>
-        <translation>Settlement</translation>
+        <translation>Checkout</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3488" />
@@ -570,7 +570,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3489" />
         <source> 单管满管</source>
-        <translation>Single-pipe full flow</translation>
+        <translation>Single Full Tube</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3050" />
@@ -580,107 +580,107 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3491" />
         <source>退料</source>
-        <translation>Return Material</translation>
+        <translation>Material Return</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3049" />
         <source>请输入g</source>
-        <translation>Please enter g</translation>
+        <translation>Enter g</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3496" />
         <source>请输入mL</source>
-        <translation>Please enter mL</translation>
+        <translation>Enter mL</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3497" />
         <source>进水</source>
-        <translation>Water Inlet</translation>
+        <translation>Water In</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3498" />
         <source>当前温度：</source>
-        <translation>Current Temperature:</translation>
+        <translation>Current Temp</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3499" />
         <source>℃</source>
-        <translation>°C</translation>
+        <translation>℃</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3500" />
         <source>空闲中......</source>
-        <translation>Idle...</translation>
+        <translation>Idle</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3501" />
         <source>烧水</source>
-        <translation>Boil water</translation>
+        <translation>Boil Water</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3502" />
         <source>每日清洗</source>
-        <translation>Daily Cleaning</translation>
+        <translation>Daily Clean</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3503" />
         <source>每周清洗</source>
-        <translation>Weekly cleaning</translation>
+        <translation>Weekly Clean</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3504" />
         <source> 清洗记录</source>
-        <translation>Cleaning Log</translation>
+        <translation>Clean Records</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3054" />
         <source>清洗配方的信息</source>
-        <translation>Cleaning formula information</translation>
+        <translation>Clean Formula Info</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3073" />
         <source>准备设备</source>
-        <translation>Preparing device</translation>
+        <translation>Preparing Device</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3522" />
         <source>·将清洁液连接到入口A。</source>
-        <translation>·Connect the cleaning solution to inlet A.</translation>
+        <translation>Connect to Inlet A</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3523" />
         <source>·将清水连接到入口B。</source>
-        <translation>Connect clean water to inlet B.</translation>
+        <translation>Connect inlet B</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3524" />
         <source>·将出水管连接到出料口。</source>
-        <translation>Connect the outlet hose to the discharge port.</translation>
+        <translation>Connect outlet hose</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3080" />
         <source>检查设备和液体供应</source>
-        <translation>Check equipment and liquid supply</translation>
+        <translation>Check Device &amp; Supply</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3511" />
         <source>·确保清洁液和清水充足，管道</source>
-        <translation>Ensure sufficient cleaning solution and clean water, pipes</translation>
+        <translation>Solution, water, pipes</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3512" />
         <source>  无堵塞。</source>
-        <translation>No blockage.</translation>
+        <translation>No blockage</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3528" />
         <source>·确保容器无泄漏，出水管道畅</source>
-        <translation>Ensure the container is leak-free and the outlet pipe is unobstructed.</translation>
+        <translation>Container sealed, pipe clear</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3529" />
         <source>  通。</source>
-        <translation>Pass.</translation>
+        <translation>Pass</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3085" />
@@ -690,37 +690,37 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3531" />
         <source>·启动清洗程序，系统将自动混</source>
-        <translation>Start the cleaning program, the system will automatically mix</translation>
+        <translation>Start Cleaning</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3532" />
         <source>  合清洁液与清水并开始清洗。</source>
-        <translation>Mix cleaning solution with water and start cleaning.</translation>
+        <translation>Mix &amp; Clean</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3088" />
         <source>清洗完成</source>
-        <translation>Cleaning completed</translation>
+        <translation>Cleaning Complete</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3534" />
         <source>·清洗完成后，系统自动停止并</source>
-        <translation>Automatically stops after cleaning is complete</translation>
+        <translation>Auto stop</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3535" />
         <source>  提示完成。</source>
-        <translation>Prompt completed.</translation>
+        <translation>Completed</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3526" />
         <source>·确保清洁液、消毒液和清水充</source>
-        <translation>·Ensure cleaning solution, disinfectant and clean water are sufficient</translation>
+        <translation>Ensure liquids sufficient</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3527" />
         <source>  足，且管道无堵塞。</source>
-        <translation>sufficient, and the pipes are not blocked.</translation>
+        <translation>Sufficient, unblocked</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3091" />
@@ -745,7 +745,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3095" />
         <source>完成时间</source>
-        <translation>Completion time</translation>
+        <translation>Completion Time</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3096" />
@@ -760,17 +760,17 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3098" />
         <source>  登录</source>
-        <translation>Sign in</translation>
+        <translation>Login</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3099" />
         <source>本地记录</source>
-        <translation>Local records</translation>
+        <translation>Local Records</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3100" />
         <source>查询订单详情</source>
-        <translation>View Order Details</translation>
+        <translation>Order Details</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3101" />
@@ -780,7 +780,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3102" />
         <source>检查版本更新</source>
-        <translation>Check for updates</translation>
+        <translation>Check for Updates</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3103" />
@@ -790,37 +790,37 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3104" />
         <source>调试系统设置</source>
-        <translation>Debug System Settings</translation>
+        <translation>Debug Settings</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3550" />
         <source>个人信息</source>
-        <translation>Personal Information</translation>
+        <translation>Profile</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3551" />
         <source>查询信息信息</source>
-        <translation>Query Information</translation>
+        <translation>Query Info</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3105" />
         <source>副屏</source>
-        <translation>Secondary screen</translation>
+        <translation>Second screen</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3106" />
         <source>副屏切换</source>
-        <translation>Second Screen Switch</translation>
+        <translation>Switch Screen</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3554" />
         <source>语言选择</source>
-        <translation>Language Selection</translation>
+        <translation>Language</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_1080_ui.py" line="3555" />
         <source>支持中英文</source>
-        <translation>Supports Chinese and English</translation>
+        <translation>Bilingual</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3107" />
@@ -840,7 +840,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3115" />
         <source>出茶状态 </source>
-        <translation>Dispensing Status</translation>
+        <translation>Tea Status</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3122" />
@@ -855,17 +855,17 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3124" />
         <source>共3页</source>
-        <translation>3 pages total</translation>
+        <translation>3 Pages</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3120" />
         <source>记录内容</source>
-        <translation>Record content</translation>
+        <translation>Record Content</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_second_screen_ui.py" line="234" />
         <source>副屏开关</source>
-        <translation>Secondary screen switch</translation>
+        <translation>Second screen</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3046" />
@@ -875,7 +875,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3047" />
         <source>单管满管</source>
-        <translation>Single pipe full</translation>
+        <translation>Single Full Tube</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3051" />
@@ -890,52 +890,52 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3053" />
         <source>清洗记录</source>
-        <translation>Cleaning Records</translation>
+        <translation>Cleaning Log</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3074" />
         <source>将5L清洁液连接到入口A，确</source>
-        <translation>Connect the 5L cleaning solution to inlet A, ensure</translation>
+        <translation>5L Cleaner to Inlet A</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3075" />
         <source>保接口牢固。</source>
-        <translation>Ensure the interface is secure.</translation>
+        <translation>Secure connection</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3076" />
         <source>将10L清水连接到入口B，确保</source>
-        <translation>Connect 10L of clean water to inlet B, and ensure</translation>
+        <translation>Connect Inlet B</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3077" />
         <source>水管通畅。</source>
-        <translation>Water pipes are clear.</translation>
+        <translation>Pipe Clear</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3078" />
         <source>将出水管连接到出料口，确保</source>
-        <translation>Connect the outlet pipe to the discharge port, ensure</translation>
+        <translation>Connect outlet pipe</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3079" />
         <source>排水顺畅。</source>
-        <translation>Drainage is smooth.</translation>
+        <translation>Drainage smooth</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3063" />
         <source>确保清洁液和清水充足，管道</source>
-        <translation>Ensure sufficient cleaning solution and clean water, pipes</translation>
+        <translation>Check fluids &amp; pipes</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3064" />
         <source>无堵塞。</source>
-        <translation>No blockage.</translation>
+        <translation>No Blockage</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3083" />
         <source>确保容器无泄漏，出水管道畅</source>
-        <translation>Ensure container has no leaks and outlet pipe is unobstructed</translation>
+        <translation>No leaks, drain clear</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3084" />
@@ -945,32 +945,32 @@
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3086" />
         <source>启动清洗程序，系统将自动混</source>
-        <translation>Start the cleaning program, the system will automatically mix</translation>
+        <translation>Start Cleaning</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3087" />
         <source>合清洁液与清水并开始清洗。</source>
-        <translation>Mix cleaning solution with water and start cleaning.</translation>
+        <translation>Mix &amp; Clean</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3089" />
         <source>清洗完成后，系统自动停止并</source>
-        <translation>After cleaning is complete, the system automatically stops and</translation>
+        <translation>Auto-stop after cleaning</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3090" />
         <source>提示完成。</source>
-        <translation>Prompt completed.</translation>
+        <translation>Prompt Complete</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3081" />
         <source>确保清洁液、消毒液和清水充</source>
-        <translation>Ensure sufficient cleaning solution, disinfectant, and clean water</translation>
+        <translation>Check Liquids</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_main_ui.py" line="3082" />
         <source>足，且管道无堵塞。</source>
-        <translation>sufficient, and the pipeline is not blocked.</translation>
+        <translation>Sufficient, unblocked</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_manager_keyboard_ui.py" line="161" />
@@ -985,12 +985,12 @@
     <message>
         <location filename="../ui_1080_py/Ui_menu_card_ui.py" line="158" />
         <source>规格</source>
-        <translation>Specifications</translation>
+        <translation>Specs</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_menu_card_ui.py" line="161" />
         <source>￥22.00</source>
-        <translation>¥22.00</translation>
+        <translation>￥22.00</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_message_dialog_ui.py" line="123" />
@@ -1000,7 +1000,7 @@
     <message>
         <location filename="../ui_1080_py/Ui_order_card_ui.py" line="110" />
         <source>订单号：</source>
-        <translation>Order Number:</translation>
+        <translation>Order No.</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_order_card_ui.py" line="111" />
@@ -1015,32 +1015,32 @@
     <message>
         <location filename="../ui_1080_py/Ui_order_card_ui.py" line="114" />
         <source>实付：</source>
-        <translation>Amount paid:</translation>
+        <translation>Paid:</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_order_card_ui.py" line="115" />
         <source>￥15</source>
-        <translation>¥15</translation>
+        <translation>￥15</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_order_dialog_1_ui.py" line="186" />
         <source>006号</source>
-        <translation>No. 006</translation>
+        <translation>#006</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_order_dialog_1_ui.py" line="189" />
         <source>制作完成</source>
-        <translation>Completed</translation>
+        <translation>Created</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_order_dialog_2_ui.py" line="141" />
         <source>稍后再说</source>
-        <translation>Remind me later</translation>
+        <translation>Later</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/Ui_order_dialog_2_ui.py" line="142" />
         <source>去补料</source>
-        <translation>Replenish materials</translation>
+        <translation>Add materials</translation>
     </message>
 </context>
 <context>
@@ -1048,7 +1048,7 @@
     <message>
         <location filename="../ui_1080_py/ui_language_settings.py" line="320" />
         <source>MainWindow</source>
-        <translation>Main Window</translation>
+        <translation>MainWindow</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/ui_language_settings.py" line="321" />
@@ -1063,17 +1063,17 @@
     <message>
         <location filename="../ui_1080_py/ui_language_settings.py" line="323" />
         <source>选择一种语言应用于整个界面</source>
-        <translation>Select a language to apply to the entire interface</translation>
+        <translation>Select Language</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/ui_language_settings.py" line="324" />
         <source>选择界面语言</source>
-        <translation>Select interface language</translation>
+        <translation>Select Language</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/ui_language_settings.py" line="325" />
         <source>한국어</source>
-        <translation>Korean</translation>
+        <translation>한국어</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/ui_language_settings.py" line="326" />
@@ -1088,12 +1088,14 @@
     <message>
         <location filename="../ui_1080_py/ui_language_settings.py" line="328" />
         <source>应用</source>
-        <translation>Application</translation>
+        <translation>App
+
+Apply (if verb: apply settings)</translation>
     </message>
     <message>
         <location filename="../ui_1080_py/ui_language_settings.py" line="329" />
         <source>语言选择</source>
-        <translation>Language Selection</translation>
+        <translation>Language</translation>
     </message>
 </context>
 </TS>

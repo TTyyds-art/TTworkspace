@@ -9,10 +9,15 @@ import requests
 
 
 SYSTEM_PROMPT = (
-    "You are a professional translator. Translate Simplified Chinese UI text to natural English. "
-    "Keep placeholders like %s, %1, {name}, {0} unchanged. Do not add extra punctuation. "
+    "Translate Simplified Chinese UI text into SHORT English UI labels. "
+    "Keep only key words, be concise (1-3 words). "
+    "Keep placeholders like %s, %1, {name}, {0} unchanged. "
     "Return only the translated text."
 )
+
+
+def _has_cjk(text: str) -> bool:
+    return any("\u4e00" <= ch <= "\u9fff" for ch in text)
 
 
 def _call_kimi(base_url: str, model: str, api_key: str, text: str, timeout: int, max_retries: int) -> str:
@@ -54,7 +59,7 @@ def _call_kimi(base_url: str, model: str, api_key: str, text: str, timeout: int,
     raise RuntimeError("Kimi API overloaded, retries exhausted")
 
 
-def translate_ts(ts_path: Path, base_url: str, model: str, api_key: str, sleep_s: float, timeout: int, max_retries: int) -> int:
+def translate_ts(ts_path: Path, base_url: str, model: str, api_key: str, sleep_s: float, timeout: int, max_retries: int, force: bool) -> int:
     tree = ET.parse(ts_path)
     root = tree.getroot()
     changed = 0
@@ -70,9 +75,14 @@ def translate_ts(ts_path: Path, base_url: str, model: str, api_key: str, sleep_s
         if translation is None:
             translation = ET.SubElement(msg, "translation")
         old_text = (translation.text or "").strip()
-        # 仅跳过已人工翻译（与源文不同）
-        if old_text and old_text != src_text:
+        if not _has_cjk(src_text):
+            translation.text = src_text
+            translation.attrib.pop("type", None)
             continue
+        if not force:
+            # 仅跳过已人工翻译（与源文不同）
+            if old_text and old_text != src_text:
+                continue
 
         translated = _call_kimi(base_url, model, api_key, src_text, timeout, max_retries)
         translation.text = translated
@@ -96,6 +106,7 @@ def main() -> int:
     parser.add_argument("--sleep", type=float, default=0.2, help="Sleep seconds between calls")
     parser.add_argument("--timeout", type=int, default=60, help="Request timeout seconds")
     parser.add_argument("--retries", type=int, default=5, help="Max retries for 429")
+    parser.add_argument("--force", action="store_true", help="Overwrite existing translations")
     args = parser.parse_args()
 
     if not args.api_key:
@@ -107,7 +118,7 @@ def main() -> int:
         print(f"File not found: {ts_path}")
         return 1
 
-    changed = translate_ts(ts_path, args.base_url, args.model, args.api_key, args.sleep, args.timeout, args.retries)
+    changed = translate_ts(ts_path, args.base_url, args.model, args.api_key, args.sleep, args.timeout, args.retries, args.force)
     print(f"translated {changed} entries in {ts_path}")
     return 0
 

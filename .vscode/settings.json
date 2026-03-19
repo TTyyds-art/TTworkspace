@@ -6,5 +6,8 @@
     ],
     "python.analysis.diagnosticSeverityOverrides": {
         "reportUndefinedVariable": "none"
+    },
+    "files.associations": {
+        "i18n/*.ts": "xml"
     }
 }
