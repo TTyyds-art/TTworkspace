@@ -87,6 +87,23 @@ def check_user(account: str, password: str) -> bool:
     finally:
         conn.close()
 
+def check_password_only(password: str) -> bool:
+    """
+    只校验密码是否存在于 users 表中（不需要账号）。
+    """
+    pwd = (password or "").strip()
+    if not pwd:
+        return False
+
+    path, external = _get_db_path()
+    conn = (sqlite3.connect(path, check_same_thread=False)
+            if external else sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=False))
+    try:
+        row = conn.execute("SELECT 1 FROM users WHERE password=? LIMIT 1", (pwd,)).fetchone()
+        return row is not None
+    finally:
+        conn.close()
+
 class LoginMata(QWidget, Ui_Form):
     result_callBack = pyqtSignal(str, str, str, str)
     result_location = pyqtSignal(str)

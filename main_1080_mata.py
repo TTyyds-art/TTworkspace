@@ -6890,13 +6890,82 @@ class Main1080Window(QWidget, Ui_Form):
         dlg.exec_()
 
     def _open_menu_update_page(self):
-        """打开菜单更新页面"""
+        """打开菜单更新页面（需密码校验）"""
+        if not self._verify_menu_update_password():
+            return
         if self._menu_update_widget is None:
             self._menu_update_widget = MenuUpdateWidget(self.setting_menu_update)
             self._menu_update_widget.btn_back.clicked.connect(self._back_from_menu_update)
             self._menu_update_widget.menu_changed.connect(self._on_menu_data_changed)
             self.verticalLayout_menu_update_page.addWidget(self._menu_update_widget)
         self.stackedWidget_setting.setCurrentWidget(self.setting_menu_update)
+
+    def _verify_menu_update_password(self) -> bool:
+        """弹出密码输入对话框，仅校验密码是否存在于 users 表"""
+        try:
+            from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QHBoxLayout, QPushButton
+            from control.login_mata import check_password_only, open_system_keyboard, close_system_keyboard
+            from PyQt5.QtCore import Qt
+        except Exception:
+            return False
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("输入密码")
+        dlg.setFixedSize(360, 180)
+        dlg.setStyleSheet("QDialog{background:#fff;border-radius:12px;}")
+
+        layout = QVBoxLayout(dlg)
+        layout.setSpacing(12)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        lbl = QLabel("请输入密码")
+        lbl.setAlignment(Qt.AlignCenter)
+        lbl.setStyleSheet("font-size:18px;font-weight:bold;")
+        layout.addWidget(lbl)
+
+        edit = QLineEdit()
+        edit.setEchoMode(QLineEdit.Password)
+        edit.setFixedHeight(40)
+        edit.setStyleSheet("QLineEdit{border:1px solid #ccc;border-radius:6px;padding:0 10px;font-size:18px;}")
+        layout.addWidget(edit)
+
+        btn_row = QHBoxLayout()
+        btn_cancel = QPushButton("取消")
+        btn_ok = QPushButton("确定")
+        for b in (btn_cancel, btn_ok):
+            b.setFixedHeight(40)
+            b.setMinimumWidth(110)
+            b.setStyleSheet("QPushButton{background:#53CB31;color:white;border-radius:6px;font-size:16px;}")
+        btn_cancel.setStyleSheet("QPushButton{background:#9e9e9e;color:white;border-radius:6px;font-size:16px;}")
+        btn_row.addWidget(btn_cancel)
+        btn_row.addWidget(btn_ok)
+        layout.addLayout(btn_row)
+
+        def _accept_if_ok():
+            pwd = edit.text().strip()
+            if check_password_only(pwd):
+                dlg.accept()
+            else:
+                from PyQt5.QtWidgets import QMessageBox
+                QMessageBox.warning(self, "密码错误", "密码不正确")
+
+        btn_ok.clicked.connect(_accept_if_ok)
+        btn_cancel.clicked.connect(dlg.reject)
+        edit.returnPressed.connect(_accept_if_ok)
+
+        try:
+            open_system_keyboard()
+        except Exception:
+            pass
+
+        res = dlg.exec_()
+
+        try:
+            close_system_keyboard()
+        except Exception:
+            pass
+
+        return res == QDialog.Accepted
 
     
     def _back_from_menu_update(self):
