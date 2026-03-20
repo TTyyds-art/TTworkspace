@@ -1,16 +1,16 @@
 {
   "status": "success",
-  "country": "香港",
-  "countryCode": "HK",
-  "region": "NTW",
-  "regionName": "Tsuen Wan District",
-  "city": "Tsuen Wan",
-  "zip": "",
-  "lat": 22.3699,
-  "lon": 114.114,
-  "timezone": "Asia/Hong_Kong",
-  "isp": "Hytron Network Services Limited",
+  "country": "新加坡",
+  "countryCode": "SG",
+  "region": "01",
+  "regionName": "Central Singapore",
+  "city": "新加坡",
+  "zip": "139964",
+  "lat": 1.29544,
+  "lon": 103.79,
+  "timezone": "Asia/Singapore",
+  "isp": "Cyberverse LLC",
   "org": "",
-  "as": "AS202662 Hytron Network Services",
-  "query": "82.152.165.84"
+  "as": "AS216245 CYBERJET PTE. LTD.",
+  "query": "195.172.136.35"
 }

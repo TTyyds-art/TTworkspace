@@ -23,11 +23,11 @@ class Ui_MainWindow(object):
         self.groupBox.setGeometry(QtCore.QRect(20, 100, 1391, 921))
         self.groupBox.setStyleSheet("QGroupBox {\n"
 "    background-color: #f8f9fa;          /* 浅灰背景 */\n"
-"    border: 2px solid #d0d7de;           /* 外边框 */\n"
+"    border: 2px solid #d0d7de;           /* 外边�?*/\n"
 "    border-radius: 18px;                  /* 圆角 */\n"
 "    margin-top: 12px;                      /* 为标题留出空间（标题本身会占据位置） */\n"
 "    padding-top: 8px;                      /* 内边距，避免内容紧贴边框 */\n"
-"    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);  /* 外阴影，使整体凸起 */\n"
+"    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);  /* 外阴影，使整体凸�?*/\n"
 "}\n"
 "")
         self.groupBox.setTitle("")
@@ -40,9 +40,9 @@ class Ui_MainWindow(object):
         self.radioButton.setFont(font)
         self.radioButton.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
         self.radioButton.setAutoFillBackground(False)
-        self.radioButton.setStyleSheet("/* 所有 QRadioButton 的基础样式 */\n"
+        self.radioButton.setStyleSheet("/* 所�?QRadioButton 的基础样式 */\n"
 "QRadioButton {\n"
-"    background-color: #f0f0f0;        /* 未选中时的背景色 */\n"
+"    background-color: #f0f0f0;        /* 未选中时的背景�?*/\n"
 "    color: #333333;                    /* 未选中时的文字颜色 */\n"
 "    border: 1px solid #cccccc;          /* 边框 */\n"
 "    border-radius: 15px;                /* 圆角，可根据高度调整 */\n"
@@ -67,7 +67,7 @@ class Ui_MainWindow(object):
 "}\n"
 "\n"
 "QRadioButton::indicator {\n"
-"    width: 0px;                       /* 隐藏默认的指示器（小圆圈） */\n"
+"    width: 0px;                       /* 隐藏默认的指示器（小圆圈�?*/\n"
 "    height: 0px;\n"
 "}")
         self.radioButton.setChecked(True)
@@ -80,9 +80,9 @@ class Ui_MainWindow(object):
         self.radioButton_3.setFont(font)
         self.radioButton_3.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
         self.radioButton_3.setAutoFillBackground(False)
-        self.radioButton_3.setStyleSheet("/* 所有 QRadioButton 的基础样式 */\n"
+        self.radioButton_3.setStyleSheet("/* 所�?QRadioButton 的基础样式 */\n"
 "QRadioButton {\n"
-"    background-color: #f0f0f0;        /* 未选中时的背景色 */\n"
+"    background-color: #f0f0f0;        /* 未选中时的背景�?*/\n"
 "    color: #333333;                    /* 未选中时的文字颜色 */\n"
 "    border: 1px solid #cccccc;          /* 边框 */\n"
 "    border-radius: 15px;                /* 圆角，可根据高度调整 */\n"
@@ -107,7 +107,7 @@ class Ui_MainWindow(object):
 "}\n"
 "\n"
 "QRadioButton::indicator {\n"
-"    width: 0px;                       /* 隐藏默认的指示器（小圆圈） */\n"
+"    width: 0px;                       /* 隐藏默认的指示器（小圆圈�?*/\n"
 "    height: 0px;\n"
 "}")
         self.radioButton_3.setObjectName("radioButton_3")
@@ -138,9 +138,9 @@ class Ui_MainWindow(object):
         self.radioButton_11.setFont(font)
         self.radioButton_11.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
         self.radioButton_11.setAutoFillBackground(False)
-        self.radioButton_11.setStyleSheet("/* 所有 QRadioButton 的基础样式 */\n"
+        self.radioButton_11.setStyleSheet("/* 所�?QRadioButton 的基础样式 */\n"
 "QRadioButton {\n"
-"    background-color: #f0f0f0;        /* 未选中时的背景色 */\n"
+"    background-color: #f0f0f0;        /* 未选中时的背景�?*/\n"
 "    color: #333333;                    /* 未选中时的文字颜色 */\n"
 "    border: 1px solid #cccccc;          /* 边框 */\n"
 "    border-radius: 15px;                /* 圆角，可根据高度调整 */\n"
@@ -165,7 +165,7 @@ class Ui_MainWindow(object):
 "}\n"
 "\n"
 "QRadioButton::indicator {\n"
-"    width: 0px;                       /* 隐藏默认的指示器（小圆圈） */\n"
+"    width: 0px;                       /* 隐藏默认的指示器（小圆圈�?*/\n"
 "    height: 0px;\n"
 "}")
         self.radioButton_11.setObjectName("radioButton_11")
@@ -177,9 +177,9 @@ class Ui_MainWindow(object):
         self.radioButton_8.setFont(font)
         self.radioButton_8.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
         self.radioButton_8.setAutoFillBackground(False)
-        self.radioButton_8.setStyleSheet("/* 所有 QRadioButton 的基础样式 */\n"
+        self.radioButton_8.setStyleSheet("/* 所�?QRadioButton 的基础样式 */\n"
 "QRadioButton {\n"
-"    background-color: #f0f0f0;        /* 未选中时的背景色 */\n"
+"    background-color: #f0f0f0;        /* 未选中时的背景�?*/\n"
 "    color: #333333;                    /* 未选中时的文字颜色 */\n"
 "    border: 1px solid #cccccc;          /* 边框 */\n"
 "    border-radius: 15px;                /* 圆角，可根据高度调整 */\n"
@@ -204,7 +204,7 @@ class Ui_MainWindow(object):
 "}\n"
 "\n"
 "QRadioButton::indicator {\n"
-"    width: 0px;                       /* 隐藏默认的指示器（小圆圈） */\n"
+"    width: 0px;                       /* 隐藏默认的指示器（小圆圈�?*/\n"
 "    height: 0px;\n"
 "}")
         self.radioButton_8.setObjectName("radioButton_8")
@@ -216,9 +216,9 @@ class Ui_MainWindow(object):
         self.radioButton_9.setFont(font)
         self.radioButton_9.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
         self.radioButton_9.setAutoFillBackground(False)
-        self.radioButton_9.setStyleSheet("/* 所有 QRadioButton 的基础样式 */\n"
+        self.radioButton_9.setStyleSheet("/* 所�?QRadioButton 的基础样式 */\n"
 "QRadioButton {\n"
-"    background-color: #f0f0f0;        /* 未选中时的背景色 */\n"
+"    background-color: #f0f0f0;        /* 未选中时的背景�?*/\n"
 "    color: #333333;                    /* 未选中时的文字颜色 */\n"
 "    border: 1px solid #cccccc;          /* 边框 */\n"
 "    border-radius: 15px;                /* 圆角，可根据高度调整 */\n"
@@ -243,7 +243,7 @@ class Ui_MainWindow(object):
 "}\n"
 "\n"
 "QRadioButton::indicator {\n"
-"    width: 0px;                       /* 隐藏默认的指示器（小圆圈） */\n"
+"    width: 0px;                       /* 隐藏默认的指示器（小圆圈�?*/\n"
 "    height: 0px;\n"
 "}")
         self.radioButton_9.setObjectName("radioButton_9")
@@ -272,10 +272,10 @@ class Ui_MainWindow(object):
         self.groupBox_2.setGeometry(QtCore.QRect(20, 0, 1391, 91))
         self.groupBox_2.setStyleSheet("QGroupBox {\n"
 "    background-color: #f8f9fa;          /* 浅灰背景 */\n"
-"    border: 2px solid #d0d7de;           /* 外边框 */\n"
+"    border: 2px solid #d0d7de;           /* 外边�?*/\n"
 "    border-radius: 12px;                  /* 圆角 */\n"
 "    margin-top: 5px;                     \n"
-"    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);  /* 外阴影，使整体凸起 */\n"
+"    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);  /* 外阴影，使整体凸�?*/\n"
 "}\n"
 "")
         self.groupBox_2.setTitle("")

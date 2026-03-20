@@ -1874,6 +1874,26 @@ class Main1080Window(QWidget, Ui_Form):
             print("[SerialScan] CH340 not found")
         return ch340_port
 
+    def _show_no_esp32_warning(self):
+        """未检测到 ESP32 时的非阻塞提示（仅一次）"""
+        if getattr(self, "_no_esp32_warned", False):
+            return
+        self._no_esp32_warned = True
+        try:
+            dlg = GreenMessageBox(
+                "设备未就绪",
+                "未识别到 ESP32(CH340) 串口，请检查连接/驱动后重试。",
+                self,
+                ok_text="知道了"
+            )
+            if self.isVisible():
+                cc = self.mapToGlobal(self.rect().center())
+                dlg.move(cc.x() - dlg.width() // 2, cc.y() - dlg.height() // 2)
+            dlg.show()
+            QTimer.singleShot(3500, dlg.close)
+        except Exception:
+            pass
+
     def __init__(self, app, parent=None):
         super(Main1080Window, self).__init__(parent)
         print(sys.executable)  # 输出当前 Python 解释器路径
@@ -1965,11 +1985,9 @@ class Main1080Window(QWidget, Ui_Form):
             self.com1 = ch340_port
             print(f"[SerialScan] use CH340 port -> {self.com1}")
         else:
-            GreenMessageBox.warning(
-                self,
-                "设备未就绪",
-                "未识别到 ESP32(CH340) 串口，请检查连接/驱动后重试。"
-            )
+            # 非阻塞提示：等窗口显示后再弹，避免启动期遮挡/阻塞
+            self._no_esp32_warned = False
+            QTimer.singleShot(100, self._show_no_esp32_warning)
         self._lang_mgr = LanguageManager(app)
         self._lang_mgr.apply(self._lang_mgr.get_lang())
         # self._brew_timer = QTimer(self); self._brew_timer.timeout.connect(self._on_brew_tick)
@@ -2179,6 +2197,9 @@ class Main1080Window(QWidget, Ui_Form):
         self.init_language_settings_page()
         #串口初始化
         self.init_conduit_serial_thread()###
+        # 泡茶控制器（避免登录时 maketee_ctl 未初始化）
+        if not hasattr(self, "maketee_ctl") or self.maketee_ctl is None:
+            self.maketee_ctl = MaketeeController(self, self.conduit_serial_thread)
         # self.conduit_serial_thread.material_detected.connect(self.on_material_detected)
         #数据库更新begin_time
         self.update_begin_time_info(self.conduit_id_num+1)### 实际+1
@@ -4182,6 +4203,16 @@ class Main1080Window(QWidget, Ui_Form):
     @pyqtSlot()
     def on_clean_begin_clicked(self):  # 当清洗开始按钮被按下触发
         if self.is_login or self.is_debug:  # 检查是否登录
+            ok = GreenConfirmBox.ask(
+                self,
+                "提示",
+                "是否有把所有管道连接到清洁管道上",
+                yes_text="确认",
+                no_text="取消",
+            )
+            if not ok:
+                self.clean_begin.setChecked(False)
+                return
             # 串口：开始清洗 -> 顺序清洗（日洗）
             self._start_daily_clean_sequence()
 
@@ -4194,11 +4225,12 @@ class Main1080Window(QWidget, Ui_Form):
                 self.current_time = datetime.now().strftime('%H:%M:%S')  # 更新当前时间
                 # 计算清洗总时长 以秒为单位
                 if self.is_day:
-                    per_channel = (
+                    per_group = (
                         (self._daily_clean_pump_delay_ms + self._daily_clean_stop_delay_ms) / 1000
                         + self._daily_clean_channel_seconds
                     )
-                    self.T = int(len(self._daily_clean_channels) * per_channel)
+                    group_count = int(math.ceil(len(self._daily_clean_channels) / 2))
+                    self.T = int(group_count * per_group)
                 else:
                     self.T = int(math.ceil(len(self.work_conduit_bean) / 3) * self.interval * self.count)
                 print(f"self.T:{self.T}")
@@ -4305,9 +4337,14 @@ class Main1080Window(QWidget, Ui_Form):
             self._clean_seq_send("stop")
             return
 
-        ch = self._daily_clean_channels[self._clean_seq_index]
-        self._clean_seq_current_channel = ch
-        cmd = f"{ch}{self._daily_clean_value:03d}"
+        ch1 = self._daily_clean_channels[self._clean_seq_index]
+        ch2 = None
+        if self._clean_seq_index + 1 < len(self._daily_clean_channels):
+            ch2 = self._daily_clean_channels[self._clean_seq_index + 1]
+        self._clean_seq_current_channel = f"{ch1}{ch2 or ''}"
+        cmd = f"{ch1}{self._daily_clean_value:03d}"
+        if ch2:
+            cmd += f"{ch2}{self._daily_clean_value:03d}"
         if not self._clean_seq_send(cmd):
             return
 
@@ -4343,7 +4380,7 @@ class Main1080Window(QWidget, Ui_Form):
         if not self._clean_seq_active or self._clean_seq_paused or token != self._clean_seq_token:
             return
         self._clean_seq_send("stop")
-        self._clean_seq_index += 1
+        self._clean_seq_index += 2
         self._run_next_clean_channel(token)
 
     # TODO 清洗菜单功能 <---
