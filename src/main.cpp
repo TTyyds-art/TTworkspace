@@ -54,7 +54,7 @@ Adafruit_PN532 nfc(PN532_SDA, PN532_SCL);
 const int ENC1_A_PIN = 32;   // 碎冰电机接近开关信号（低电平有效）
 const int ENC2_A_PIN = 33;   // 螺旋杆霍尔编码器信号（上升沿有效）
 
-// ===== 搅动电机接近式开关（GPIO25，支持内部下拉） =====
+// ===== 搅动电机接近式开关（GPIO25，支持内部上拉） =====
 // 传感器特性：初始低电平，检测到金属时输出拉高（高电平有效）
 const int STIR_ENC_PIN = 25; // 搅动电机接近式开关信号
 
@@ -1386,6 +1386,9 @@ void checkMotorsMoving() {
   // Serial.print(moving1 ? "MOVING" : "STOP");
   // Serial.print("  |  M2: ");
   // Serial.println(moving2 ? "MOVING" : "STOP");
+  // ===== 传送带霍尔编码器“卡死检测”暂时禁用（按需求注释） =====
+  // 如需恢复，请取消下方整个块注释。
+  /*
   if(motorActive[0]&&motorActive[1]&&speed_judge){//都为运行状态
     if(moving1==1&&moving3==1&&moving2==0){//搅冰和碎冰转,螺旋杆不转
       vTaskSuspend(weightReadTaskHandle);
@@ -1526,6 +1529,7 @@ void checkMotorsMoving() {
       vTaskResume(weightReadTaskHandle);
     }
   }
+  */
   lastCheckTime = now;
 }
 
@@ -2204,28 +2208,6 @@ static void purgeJamsSequential() {
 }
 
 
-// void handleSugar999(char chan ) {
-//   if(chan=='U'){
-//     Serial.println("U通道24V开启");
-//     SerialRelay.write(sugarOnCmd[0],8);
-//     delay(50);
-//     // motorActive[0]=true;
-//   }
-//   else if(chan=='V'){
-//     Serial.println("V通道24V开启");
-//     SerialRelay.write(sugarOnCmd[1],8);
-//     delay(50);
-//     // motorActive[0]=true;
-//   }
-  //   else if(chan=='W'){
-  //   Serial.println("W通道24V开启");
-  //   SerialRelay.write(sugarOnCmd[2],8);
-  //   delay(50);
-  //   // motorActive[0]=true;
-  // }
-
-// }
-
 // isU=true 表示 U 路(继电器1/2/3)，isU=false 表示 V 路(继电器4/5/6)
 // use24V=true -> 电压继电器 ON；use24V=false -> 电压继电器 OFF
 static inline void sugarSetState(bool isU, bool use24V, uint8_t dir) {
@@ -2251,7 +2233,7 @@ static inline void sugarSetState(bool isU, bool use24V, uint8_t dir) {
 }
 
 void handleSugar999(char chan) {
-  bool isU = (chan == 'U' || chan =='V');  // U or V
+  bool isU = (chan == 'U');  // U or V
   bool use24V = true;                 // 999 满管 -> 24V
   sugarSetState(isU, use24V, SUGAR_FWD);
 }
@@ -2577,11 +2559,11 @@ void setup() {
   // Serial.println(WiFi.macAddress());
 
   
-  pinMode(ENC1_A_PIN, INPUT_PULLDOWN);  // 接近开关信号（高电平有效），需外部下拉更稳
+  pinMode(ENC1_A_PIN, INPUT_PULLUP);  // 接近开关信号（高电平有效），需外部上拉更稳
   pinMode(ENC2_A_PIN, INPUT_PULLUP);
 
-  // PATCH: 搅动电机接近式开关（GPIO25 支持内部下拉）
-  pinMode(STIR_ENC_PIN, INPUT_PULLDOWN);
+  // PATCH: 搅动电机接近式开关（GPIO25 支持内部上拉）
+  pinMode(STIR_ENC_PIN, INPUT_PULLUP);
 
   // 清洁主泵流量计：上拉输入（若为开漏/干接点，建议外部上拉更稳）
   pinMode(CLEAN_FLOW_PIN, INPUT_PULLUP);
@@ -2703,68 +2685,55 @@ void loop() {
   //   delay(random(0, 2000));
   // }
 
-
-  //空闲状态防堵操作
-  // if(millis()-lastrun>=60000){
-  //   if(allMotorsInactive&&Weights[1]>1000){
-  //     lastrun=millis();
-  //     SerialRelay.write(relayOffCmd_ICE_STIR_FWD,8);
-  //     delay(50);
-  //     SerialRelay.write(relayOnCmd_ICE_STIR_REV,8);
-  //     delay(50);
-  //     reverses_num++;   
-  //     if(reverses_num>20){
-  //         reverses_num=0;
-  //         SerialRelay.write(relayOnCmd_3[0], 8);
-  //         delay(50);
-  //         SerialRelay.write(relayOffCmd_3[1], 8);
-  //         delay(3000); //转动3S
-  //         SerialRelay.write(relayOffCmd_3[0], 8);
-  //         delay(50);
-  //     }
-  //   }
-  // }
-  const uint32_t now = millis();
-
-  const bool hasIceIdle = (Weights[1] > 1000);
-  const bool allInactiveNow = allMotorsInactive;
-  if (allInactiveNow && idleWasActive) {
-    // 刚进入空闲：重置计时，避免立即触发空闲反转
-    idleJamLastTrigMs = now;
-  }
-  idleWasActive = !allInactiveNow;
-
-  const uint32_t IDLE_REV_PERIOD_MS = 60000;
-  const uint32_t IDLE_REV_RUN_MS = 3000;
-
-  if (!idleJamRunning) {
-    if (allMotorsInactive && hasIceIdle && (now - idleJamLastTrigMs >= IDLE_REV_PERIOD_MS)) {
-      idleJamLastTrigMs = now;
-      idleJamRunning = true;
-      idleJamStartMs = now;
-
-      // 开始反转（先关正转，再开反转）
-      relayWrite(relayOffCmd_ICE_STIR_FWD, 8);
-      delay(50);
-      relayWrite(relayOnCmd_ICE_STIR_REV, 8);
-      Serial.printf("[IDLE_JAM] start rev\n");
-    }
-  } else {
-    if (now - idleJamStartMs >= IDLE_REV_RUN_MS) {
-      // 3 秒到：停
-      relayWrite(relayOffCmd_ICE_STIR_REV, 8);
-      delay(50);
-      relayWrite(relayOffCmd_ICE_STIR_FWD, 8);
-      idleJamRunning = false;
-      Serial.printf("[IDLE_JAM] stop rev\n");
-    }
-  }
-
-
   checkIceJude();
   checkLoops();
   // checkTotalWeight(); // 如需总重闭环可打开
   checkCupLiftTrigger();
+
+  // ===== 空闲反转（移动到 checkLoops 之后，使用最新 allMotorsInactive） =====
+  const uint32_t now = millis();
+  const bool idleAllowed = (!commandReceived && !isProcessingCommand);
+  const bool hasIceIdle = (Weights[1] > 1000);
+  const bool allInactiveNow = allMotorsInactive;
+
+  if (!idleAllowed) {
+    // 流程中禁止空闲反转，重置计时避免刚结束就触发
+    idleJamRunning = false;
+    idleJamLastTrigMs = now;
+    idleWasActive = false;
+  } else {
+    if (allInactiveNow && idleWasActive) {
+      // 刚进入空闲：重置计时，避免立即触发空闲反转
+      idleJamLastTrigMs = now;
+    }
+    idleWasActive = !allInactiveNow;
+
+    const uint32_t IDLE_REV_PERIOD_MS = 60000;
+    const uint32_t IDLE_REV_RUN_MS = 3000;
+
+    if (!idleJamRunning) {
+      if (allMotorsInactive && hasIceIdle && (now - idleJamLastTrigMs >= IDLE_REV_PERIOD_MS)) {
+        idleJamLastTrigMs = now;
+        idleJamRunning = true;
+        idleJamStartMs = now;
+
+        // 开始反转（先关正转，再开反转）
+        relayWrite(relayOffCmd_ICE_STIR_FWD, 8);
+        delay(50);
+        relayWrite(relayOnCmd_ICE_STIR_REV, 8);
+        Serial.printf("[IDLE_JAM] start rev\n");
+      }
+    } else {
+      if (now - idleJamStartMs >= IDLE_REV_RUN_MS) {
+        // 3 秒到：停
+        relayWrite(relayOffCmd_ICE_STIR_REV, 8);
+        delay(50);
+        relayWrite(relayOffCmd_ICE_STIR_FWD, 8);
+        idleJamRunning = false;
+        Serial.printf("[IDLE_JAM] stop rev\n");
+      }
+    }
+  }
 
   // 清洁主泵流量计：无流监测（仅清洁模式启用）
   if (cleanFlowMonitorEnabled) {
