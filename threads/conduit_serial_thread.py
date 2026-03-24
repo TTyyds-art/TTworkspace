@@ -242,6 +242,12 @@ class ConduitSerialThread(QThread):
         self.serial = None
         self.running = False
 
+        # 连接与重连控制
+        self._last_rx_ts = time.time()
+        self._last_tx_ts = 0.0
+        self._rx_timeout_sec = 6.0
+        self._reopen_delay = 0.5
+
         # 一次性发送兼容标记
         self.is_open = False
         self.execute_once = False
@@ -265,10 +271,41 @@ class ConduitSerialThread(QThread):
                 s = f"{data}\n" if not str(data).endswith("\n") else str(data)
                 print("输出配方：")
                 print(f"[Serial=>] {s.strip()}")
-
                 self.serial.write(s.encode("utf-8"))
+                self._last_tx_ts = time.time()
             except Exception as e:
                 print(f"[Serial] write error: {e}")
+                self._close_serial()
+
+    def _open_serial(self) -> bool:
+        try:
+            self.serial = serial.Serial(self.port, 9600, timeout=1)
+            print(f"[Serial] Connected to {self.port}")
+
+            # 复位/唤醒设备（应对休眠/拔插后不响应）
+            try:
+                self.serial.dtr = False
+                self.serial.rts = False
+                time.sleep(0.05)
+                self.serial.dtr = True
+                self.serial.rts = True
+            except Exception:
+                pass
+
+            self._last_rx_ts = time.time()
+            return True
+        except Exception as e:
+            print(f"[Serial] open error: {e}")
+            self.serial = None
+            return False
+
+    def _close_serial(self):
+        if self.serial and self.serial.is_open:
+            try:
+                self.serial.close()
+            except Exception:
+                pass
+        self.serial = None
 
     def run(self):
         self.running = True
@@ -276,8 +313,9 @@ class ConduitSerialThread(QThread):
             try:
                 # 打开串口
                 if self.serial is None or not self.serial.is_open:
-                    self.serial = serial.Serial(self.port, 9600, timeout=1)
-                    print(f"[Serial] Connected to {self.port}")
+                    if not self._open_serial():
+                        time.sleep(self._reopen_delay)
+                        continue
 
                 # 兼容一次性发送
                 if self.is_open and self.execute_once:
@@ -291,9 +329,11 @@ class ConduitSerialThread(QThread):
                         line = self.serial.readline().decode("utf-8", errors="ignore").strip()
                         if line:
                             print(f"[Serial<=] {line}")
+                            self._last_rx_ts = time.time()
                     except Exception as e:
                         print(f"[Serial] decode err: {e}")
                         line = ""
+                        self._close_serial()
 
                 if line:
 
@@ -375,24 +415,27 @@ class ConduitSerialThread(QThread):
 
                     # 3) wD/mA 列表
                     self._handle_wd_ma_line(line)
-                
+                 
                 # 读取到一行 line 之后：
 
 
 
-                time.sleep(0.01)
+                # 无数据超时 -> 触发重连（应对休眠/拔插后设备不响应）
+                if (time.time() - self._last_rx_ts) > self._rx_timeout_sec:
+                    print("[Serial] no data timeout, reopen serial")
+                    self._close_serial()
+                    time.sleep(self._reopen_delay)
+                else:
+                    time.sleep(0.01)
 
             except (SerialException, PermissionError) as e:
                 print(f"[Serial] error: {e}")
-                self.running = False
+                self._close_serial()
+                time.sleep(self._reopen_delay)
 
         # 退出清理
-        if self.serial and self.serial.is_open:
-            try:
-                self.serial.close()
-            except Exception:
-                pass
-            print("[Serial] closed")
+        self._close_serial()
+        print("[Serial] closed")
 
     # ========== 解析工具 ==========
     def _handle_material_packet_line(self, line: str) -> bool:
