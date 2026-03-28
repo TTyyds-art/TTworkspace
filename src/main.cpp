@@ -10,6 +10,9 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 
+// ===== INO 兼容：前置声明，避免 Arduino 自动原型早于类型定义 =====
+struct StallRecover;
+
 #define WIFI_SSID   "56号"
 #define WIFI_PASS   "XYZ211341"
 
@@ -61,11 +64,6 @@ const int STIR_ENC_PIN = 25; // 搅动电机接近式开关信号
 // ===== 清洁主泵流量计（GPIO27，中断脉冲输入，上升沿有效） =====
 const int CLEAN_FLOW_PIN = 27; // 清洁主泵流量计信号
 static constexpr uint32_t CLEAN_FLOW_LOST_MS = 2000; // 连续无脉冲判定无流
-
-// 检测时间窗口（毫秒）
-const unsigned long CHECK_INTERVAL_MS = 100;
-
-bool lock_judge=0;
 
 // 中断计数：只看这段时间内有没有脉冲
 volatile long encoderCount1 = 0;
@@ -198,6 +196,10 @@ bool hasIceAThisCycle = false;  // 本轮命令是否包含 A(搅冰)
 bool hasIceBThisCycle = false;  // 本轮命令是否包含 B(碎冰)
 bool ice_allow_A = false;       // 放行A（由checkTotalWeight设置）
 bool ice_allow_B = false;       // 放行B（由checkTotalWeight设置）
+bool iceStopByTotalWeight = false; // 总重逻辑触发的冰通道停机（用于抑制卡死脱困）
+static bool iceRestartGuard = false;                 // 冰路重启保护（短窗口防抖）
+static uint32_t iceRestartGuardUntil = 0;            // 保护结束时刻
+static constexpr uint32_t ICE_RESTART_GUARD_MS = 1800;
 bool speed_judge=0;//减速标志位
 
 // 碎冰结束后等待拿杯检测，再触发小料
@@ -402,274 +404,7 @@ inline void augerMotorReverse() {
 
 
 
-// ============================================================================
-// ===== PATCH: 碎冰/搅冰(传送带)/搅动 电机 —— 三个独立状态机（卡死检测+反转解卡+RPM打印） =====
-// 说明：
-// - 碎冰电机：继电器 3/4（iceMotorForward/Reverse/Stop），编码器=ENC1_A_PIN
-// - 搅冰(传送带/螺旋杆)：继电器 0/1（augerMotorForward/Reverse/Stop），编码器=ENC2_A_PIN
-// - 搅动电机：继电器 7/8（stirMotorForward/Reverse/Stop），霍尔编码器=GPIO35
-// 你只需调整下面三个 PULSES_PER_REV_* 常量为真实硬件的“每转脉冲数”。
-// ============================================================================
-
-static constexpr float PULSES_PER_REV_CRUSH = 20.0f; // 碎冰电机编码器：每转脉冲数（按实际改）
-static constexpr float PULSES_PER_REV_AUGER = 20.0f; // 传送带/搅冰编码器：每转脉冲数（按实际改）
-static constexpr float PULSES_PER_REV_STIR  = 6.0f;  // 光电：每转6脉冲（6个监测点）
-
-struct MotorFSM {
-  enum State : uint8_t {
-    IDLE = 0,
-    RUN_FWD,
-    RUN_REV,
-    ESCAPE,     // 临时换向脱困
-    SETTLE,     // 停机缓冲
-    FAULT
-  };
-
-  // --- 绑定 ---
-  const char*     tag = "M";
-  volatile long*  totalCounter = nullptr;  // ISR 累计脉冲
-  void (*doStop)() = nullptr;
-  void (*doFwd)()  = nullptr;
-  void (*doRev)()  = nullptr;
-
-  // --- 配置 ---
-  float    pulsesPerRev = 1.0f;
-  uint16_t stallWinMs   = 150;
-  uint8_t  stallNeedWin = 5;
-  int32_t  minPulsesPerWin = 1;
-  uint16_t escapeMs     = 700;
-  bool     enableStall  = true;
-  uint16_t settleMs     = 80;
-  uint8_t  maxEscape    = 6;
-  // uint16_t rpmPrintMs   = 500;
-
-  // --- 状态 ---
-  State   st       = IDLE;
-  int8_t  wantDir  = DIR_STOP;   // 期望方向（只支持 STOP/FWD；解卡时会临时换向）
-  int8_t  runDir   = DIR_STOP;   // 当前执行方向
-  int8_t  escapeDir = DIR_STOP;  // ESCAPE 临时方向
-  uint32_t stAt    = 0;
-  uint8_t  stallWinCnt = 0;
-  uint8_t  escapeCnt   = 0;
-
-  // --- 采样 ---
-  long     lastStallTotal = 0;
-  uint32_t lastStallMs    = 0;
-  // long     lastRpmTotal   = 0;
-  // uint32_t lastRpmMs      = 0;
-
-  void bind(const char* _tag, volatile long* _total, float _ppr,
-            void (*_stop)(), void (*_fwd)(), void (*_rev)()) {
-    tag = _tag;
-    totalCounter = _total;
-    pulsesPerRev = (_ppr <= 0.0f) ? 1.0f : _ppr;
-    doStop = _stop;
-    doFwd  = _fwd;
-    doRev  = _rev;
-    reset();
-  }
-
-  void reset() {
-    st = IDLE;
-    wantDir = DIR_STOP;
-    runDir  = DIR_STOP;
-    escapeDir = DIR_STOP;
-    stAt = millis();
-    stallWinCnt = 0;
-    escapeCnt = 0;
-    lastStallMs = millis();
-  //   lastRpmMs   = millis();
-  }
-
-  // 外部只设置“想要持续运行的方向”（通常是 DIR_FWD 或 DIR_STOP）
-  inline void requestDir(int8_t dir) {
-    wantDir = dir;
-  }
-
-  // 立即停机并回到 IDLE（用于 stopMotor / 超时）
-  void forceStop() {
-    if (doStop) doStop();
-    st = IDLE;
-    runDir = DIR_STOP;
-    wantDir = DIR_STOP;
-    stallWinCnt = 0;
-    escapeCnt = 0;
-  }
-
-  void _enterRun(int8_t dir, uint32_t nowMs) {
-    if (dir == DIR_FWD) {
-      if (doFwd) doFwd();
-      runDir = DIR_FWD;
-      st = RUN_FWD;
-    } else if (dir == DIR_REV) {
-      if (doRev) doRev();
-      runDir = DIR_REV;
-      st = RUN_REV;
-    } else {
-      if (doStop) doStop();
-      runDir = DIR_STOP;
-      st = IDLE;
-    }
-    stAt = nowMs;
-  }
-
-  void _startEscape(uint32_t nowMs) {
-    // 超过次数：进入 FAULT
-    if (++escapeCnt > maxEscape) {
-      if (doStop) doStop();
-      st = FAULT;
-      runDir = DIR_STOP;
-      Serial.printf("[%s] FAULT: too many escapes\n", tag);
-      return;
-    }
-
-    // 换向脱困：FWD->REV / REV->FWD
-    escapeDir = (runDir == DIR_FWD) ? DIR_REV : DIR_FWD;
-
-    if (doStop) doStop();
-    delay(20);
-    if (escapeDir == DIR_REV) { if (doRev) doRev(); }
-    else { if (doFwd) doFwd(); }
-
-    st = ESCAPE;
-    stAt = nowMs;
-    Serial.printf("[%s] stall -> escape(%s)\n", tag, (escapeDir==DIR_REV?"REV":"FWD"));
-  }
-
-  void _enterSettle(uint32_t nowMs) {
-    if (doStop) doStop();
-    runDir = DIR_STOP;
-    st = SETTLE;
-    stAt = nowMs;
-  }
-
-  // 返回窗口内增量脉冲
-  inline long _deltaTotal(long &lastTotal) {
-    long cur;
-    noInterrupts();
-    cur = totalCounter ? *totalCounter : 0;
-    interrupts();
-    long d = cur - lastTotal;
-    lastTotal = cur;
-    return d;
-  }
-
-  void tick(uint32_t nowMs) {
-    if (!totalCounter || !doStop || !doFwd || !doRev) return;
-
-    // --- RPM 打印（不依赖方向；只要在转或处于RUN/ESCAPE就打印） ---
-    // if (nowMs - lastRpmMs >= rpmPrintMs) {
-    //   uint32_t dt = nowMs - lastRpmMs;
-    //   long dp = _deltaTotal(lastRpmTotal);
-    //   float rpm = 0.0f;
-    //   if (dt > 0) rpm = (dp / pulsesPerRev) * (60000.0f / (float)dt);
-    //   if (st != IDLE || dp > 0) {
-    //     Serial.printf("[%s] rpm=%.1f pulses=%ld state=%u\n", tag, rpm, dp, (unsigned)st);
-    //   }
-    //   lastRpmMs = nowMs;
-    // }
-
-    // --- FAULT：保持停机，等待外部 stopMotor/复位（你也可在此加自动恢复策略） ---
-    if (st == FAULT) {
-      return;
-    }
-
-    // --- 期望=STOP：立即停机 ---
-    if (wantDir == DIR_STOP) {
-      if (st != IDLE) {
-        _enterSettle(nowMs);
-      }
-    }
-
-    // --- SETTLE：停机缓冲结束后，若仍期望运行则进入运行 ---
-    if (st == SETTLE) {
-      if (nowMs - stAt >= settleMs) {
-        if (wantDir == DIR_FWD) _enterRun(DIR_FWD, nowMs);
-        else if (wantDir == DIR_REV) _enterRun(DIR_REV, nowMs);
-        else { st = IDLE; runDir = DIR_STOP; }
-      }
-      return;
-    }
-
-    // --- IDLE：若期望运行则进入运行 ---
-    if (st == IDLE) {
-      if (wantDir == DIR_FWD) _enterRun(DIR_FWD, nowMs);
-      else if (wantDir == DIR_REV) _enterRun(DIR_REV, nowMs);
-      return;
-    }
-
-    // --- ESCAPE：到时后停机缓冲，然后回到期望方向 ---
-    if (st == ESCAPE) {
-      if (nowMs - stAt >= escapeMs) {
-        _enterSettle(nowMs);
-      }
-      return;
-    }
-
-    // --- RUN 状态：卡死检测（连续多个窗口无脉冲） ---
-    if ((st == RUN_FWD) || (st == RUN_REV)) {
-      if (enableStall && totalCounter && pulsesPerRev > 0.0f && (nowMs - lastStallMs >= stallWinMs)) {
-        long dp = _deltaTotal(lastStallTotal);
-        const bool moving = (dp >= minPulsesPerWin);
-        if (moving) {
-          stallWinCnt = 0;
-          escapeCnt = 0; // 一旦检测到在动，清空脱困计数
-        } else {
-          if (++stallWinCnt >= stallNeedWin) {
-            stallWinCnt = 0;
-            _startEscape(nowMs);
-            return;
-          }
-        }
-        lastStallMs = nowMs;
-      }
-    }
-  }
-};
-
-// 三个独立模块实例
-static MotorFSM fsmCrush; // 碎冰电机(3/4)
-static MotorFSM fsmAuger; // 传送带/搅冰(0/1)
-static MotorFSM fsmStir;  // 搅动电机(7/8)
-
-// 空闲反转调度（对齐旧版方向规则）：空闲且有冰时，A(搅冰电机7/8) 与 B(碎冰电机3/4) 定时反转
-// - 工作阶段：A/B 正转（由 loop() 里的 workA/workB 决定）
-// - 空闲阶段：每 60s 反转 3s（仅当 allMotorsInactive && hasIce）
-static inline void iceIdleReverseScheduler(uint32_t nowMs, bool enableIdle, bool hasIce) {
-  static uint32_t lastTrig = 0;
-  static bool     running  = false;
-  static uint32_t startAt  = 0;
-
-  const uint32_t PERIOD_MS = 60000; // 每 60s
-  const uint32_t RUN_MS    = 3000;  // 反转 3s
-
-  // 非空闲或没冰：退出调度，不抢控制，并重置计时
-  if (!enableIdle || !hasIce) {
-    running  = false;
-    lastTrig = nowMs;  // 重置空闲计时，避免刚结束就立即反转
-    return;
-  }
-
-  if (!running) {
-    if (nowMs - lastTrig >= PERIOD_MS) {
-      lastTrig = nowMs;
-      running  = true;
-      startAt  = nowMs;
-
-      // 仅搅冰电机 A：空闲反转
-      fsmStir.requestDir(DIR_REV);
-      Serial.printf("[IDLE_FSM] start rev: now=%lu enableIdle=%d hasIce=%d\n",
-                    (unsigned long)nowMs, enableIdle ? 1 : 0, hasIce ? 1 : 0);
-    }
-  } else {
-    if (nowMs - startAt >= RUN_MS) {
-      // 结束：停搅冰
-      fsmStir.requestDir(DIR_STOP);
-      running = false;
-      Serial.printf("[IDLE_FSM] stop: now=%lu\n", (unsigned long)nowMs);
-    }
-  }
-}
+// ===== 仅保留一套卡死脱困逻辑：checkIceStallRecoveryNew =====
 
 //控制糖路的开关
 const byte relayOnCmd_2[8][8] = {
@@ -808,13 +543,23 @@ int baselineWeights[deviceCount] = { 0 };  //重量基础值
 
 
 
-int weightDiff[deviceCount] = { 0 };  //重量差值
+int weightDiff[deviceCount] = { 0 };      // 重量差值
+int weightDiffPrev[deviceCount] = { 0 };  // 上一轮重量差
 bool baseInit_judge[deviceCount]={false};
 
 int target_diff[deviceCount] = {
   // A..X（共 24 路）补偿值
-  0,0,28,27,25,25,23,22,21,20,19,22,22,21,23,26,23,22,26,24,0,0,0,0
-}; 
+  0,0,28,27,25,25,
+  11,13,10,17,23,24,22,16,20,15,26,34,16,23,
+  0,0,0,0
+};
+bool liquidPulseMode[deviceCount] = { false };      // 液体是否进入末段点动
+bool liquidPulseOutputOn[deviceCount] = { false };  // 点动当前输出状态：true=开，false=关
+unsigned long liquidPulseTick[deviceCount] = { 0 }; // 点动节拍时间戳
+
+const uint32_t LIQUID_PULSE_ON_MS  = 80;   // 点动开泵时间
+const uint32_t LIQUID_PULSE_OFF_MS = 120;  // 点动停泵时间
+const int LIQUID_PULSE_MARGIN = 8;         // 距离最终停机点 8g 时进入点动区
 int liquid_diff[deviceCount] = {0,0,0,0,0,0,0,0,0,0,0}; //0,0,8,16,10,17,18,16,18
 int suib = 1;  //碎冰模块地址  在传送带模块地址的后一个
 int csd = 0;   //传送带地址  
@@ -824,6 +569,7 @@ int timer = 20000;//电机运行超时时间（兜底：当单通道 max_time_to
 unsigned long time_check_to_stop[deviceCount] = {0}; //时间与重量双重监测
 unsigned long last_time_check_to_stop[deviceCount] = {0};
 unsigned long max_time_to_stop[deviceCount] = {0}; // 每通道独立超时上限（毫秒）
+const uint32_t MIN_LIQUID_RUN_MS = 300;   // 液体最小运行时间，避免启动瞬间误判
 
 // ===== 每通道“期望出料时长”估算（用于超时兜底） =====
 // 可按实际标定修改：单位 g/s
@@ -911,6 +657,9 @@ void resetForNewCycle() {
   hasIceBThisCycle       = false;
   ice_allow_A            = false;
   ice_allow_B            = false;
+  iceStopByTotalWeight   = false;
+  iceRestartGuard        = false;
+  iceRestartGuardUntil   = 0;
 
   liquidsStageTriggered  = false;
   totalSlowdownTriggered = false;
@@ -937,6 +686,10 @@ void resetForNewCycle() {
     max_time_to_stop[i]      = 0;
     last_time_check_to_stop[i]=0;
     baseInit_judge[i]        = false;
+
+    liquidPulseMode[i]        = false;
+    liquidPulseOutputOn[i]    = false;
+    liquidPulseTick[i]        = 0;
   }
 
   // —— 果酱/糖路跨轮标志 —— 
@@ -990,6 +743,9 @@ void resetAllToInitialState() {
   hasIceBThisCycle       = false;
   ice_allow_A            = false;
   ice_allow_B            = false;
+  iceStopByTotalWeight   = false;
+  iceRestartGuard        = false;
+  iceRestartGuardUntil   = 0;
 
   liquidsStageTriggered  = false;
   totalSlowdownTriggered = false;
@@ -1023,6 +779,7 @@ void resetAllToInitialState() {
 
     targetWeights[i]         = 0;
     weightDiff[i]            = 0;
+    weightDiffPrev[i]        = 0;
 
     motorStartTime[i]        = 0;
     motorRunDuration[i]      = 0;
@@ -1037,6 +794,10 @@ void resetAllToInitialState() {
     actualDischargeAmounts[i]= 0;
 
     baseInit_judge[i]        = false;
+
+    liquidPulseMode[i]        = false;
+    liquidPulseOutputOn[i]    = false;
+    liquidPulseTick[i]        = 0;
   }
 
   // —— 果酱/糖路 —— 
@@ -1049,7 +810,11 @@ void resetAllToInitialState() {
 
   // —— 恢复补偿表到“最初定义” —— 
   { // target_diff 初始（A..X 共 24 路）
-    int init_target_diff[] = {0,0,28,27,25,25,23,22,21,20,19,22,22,21,23,26,23,22,26,24,0,0,0,0};
+    int init_target_diff[] = {
+      0,0,28,27,25,25,
+      16,17,20,18,21,25,21,20,24,21,26,35,26,21,
+      0,0,0,0
+    };
     for (int i=0; i<deviceCount && i<(int)(sizeof(init_target_diff)/sizeof(init_target_diff[0])); ++i)
       target_diff[i] = init_target_diff[i];
   }
@@ -1107,113 +872,6 @@ void IRAM_ATTR cleanFlowISR() {
   cleanFlowLastPulseMs = millis();
 }
 
-// ===== PATCH: 搅动电机“卡住反转/换向脱困”检测 =====
-// 触发条件：搅动电机处于运行（stirMotorDir!=0）但在多个窗口内无脉冲
-void checkStirMotorStall() {
-  static unsigned long lastCheck = 0;
-  static uint8_t stallWin = 0;
-  const unsigned long now = millis();
-  const unsigned long WIN_MS = 150;     // 检测窗口
-  const uint8_t NEED_STALL_WINS = 5;    // 连续 N 个窗口无脉冲 -> 认为卡住
-  const unsigned long ESCAPE_MS = 600;  // 脱困换向持续时间
-
-  if (now - lastCheck < WIN_MS) return;
-  lastCheck = now;
-
-  if (stirMotorDir == DIR_STOP) {
-    stallWin = 0;
-    noInterrupts();
-    stirEncoderCount = 0;
-    interrupts();
-    return;
-  }
-
-  long pulses;
-  noInterrupts();
-  pulses = stirEncoderCount;
-  stirEncoderCount = 0;
-  interrupts();
-
-  const bool moving = (pulses > 0);
-  if (moving) {
-    stallWin = 0;
-    return;
-  }
-
-  if (++stallWin < NEED_STALL_WINS) return;
-  stallWin = 0;
-
-  // 卡住：按当前方向进行“反向/换向脱困”
-  const int8_t prevDir = stirMotorDir;
-  Serial.println("[STIR] stall -> escape");
-  stirMotorStop();
-  delay(80);
-  if (prevDir == DIR_FWD) {
-    // 正转卡住 -> 反转脱困
-    stirMotorReverse();
-  } else {
-    // 反转卡住（通常是空闲搅冰） -> 改为正转摆脱
-    stirMotorForward();
-  }
-  delay(ESCAPE_MS);
-  stirMotorStop();
-  delay(80);
-  // 恢复原方向
-  if (prevDir == DIR_FWD) stirMotorForward();
-  else if (prevDir == DIR_REV) stirMotorReverse();
-}
-
-// ===== PATCH: 碎冰电机（冰机）卡住脱困检测 =====
-// 触发条件：冰机处于运行（iceMotorDir!=0）但在多个窗口内无编码器脉冲
-void checkCrushedIceMotorStall() {
-  static unsigned long lastCheck = 0;
-  static uint8_t stallWin = 0;
-  const unsigned long now = millis();
-  const unsigned long WIN_MS = 150;
-  const uint8_t NEED_STALL_WINS = 5;
-  const unsigned long ESCAPE_MS = 800;
-
-  if (now - lastCheck < WIN_MS) return;
-  lastCheck = now;
-
-  if (iceMotorDir == DIR_STOP) {
-    stallWin = 0;
-    noInterrupts();
-    encoderCount1 = 0;
-    interrupts();
-    return;
-  }
-
-  long pulses;
-  noInterrupts();
-  pulses = encoderCount1;
-  encoderCount1 = 0;
-  interrupts();
-
-  const bool moving = (pulses > 1);
-  if (moving) {
-    stallWin = 0;
-    return;
-  }
-
-  if (++stallWin < NEED_STALL_WINS) return;
-  stallWin = 0;
-
-  const int8_t prevDir = iceMotorDir;
-  Serial.println("[ICE] stall -> reverse escape");
-  iceMotorStop();
-  delay(80);
-  // 按你需求：卡住优先“反转摆脱”。若当前本就在反转，则改为正转摆脱。
-  if (prevDir == DIR_FWD) iceMotorReverse();
-  else iceMotorForward();
-  delay(ESCAPE_MS);
-  iceMotorStop();
-  delay(80);
-  // 恢复原方向
-  if (prevDir == DIR_FWD) iceMotorForward();
-  else if (prevDir == DIR_REV) iceMotorReverse();
-}
-
 // ===== 新版：基于两路接近 + 一路霍尔的卡死检测（反转3s -> 正转3s，最多3遍，失败停机） =====
 static inline long readTotalSafe(volatile long* p) {
   long v;
@@ -1244,10 +902,12 @@ struct StallRecover {
   uint32_t winMs    = 150;
   uint32_t phaseMs  = 3000;
   uint8_t maxCycles = 3;
+  uint32_t minRunMs = 0; // 最小运行时间：未达到时不允许触发脱困
 
   long     lastTotal = 0;
   uint32_t lastWinMs = 0;
   uint8_t  noPulseWins = 0;
+  uint32_t runStartMs = 0;
 
   enum Phase : uint8_t { IDLE=0, REV=1, FWD=2 } phase = IDLE;
   uint32_t phaseStartMs = 0;
@@ -1256,8 +916,22 @@ struct StallRecover {
 };
 
 static StallRecover stallCrush;
-static StallRecover stallAuger;
 static StallRecover stallStir;
+
+static inline void armIceRestartGuard(uint32_t guardMs = ICE_RESTART_GUARD_MS) {
+  iceRestartGuard = true;
+  iceRestartGuardUntil = millis() + guardMs;
+}
+
+static inline bool isIceRestartGuardActive() {
+  if (!iceRestartGuard) return false;
+  const uint32_t now = millis();
+  if ((int32_t)(now - iceRestartGuardUntil) >= 0) {
+    iceRestartGuard = false;
+    return false;
+  }
+  return true;
+}
 
 static inline void stallReset(StallRecover& m) {
   m.lastTotal = 0;
@@ -1267,6 +941,36 @@ static inline void stallReset(StallRecover& m) {
   m.phaseStartMs = 0;
   m.phaseStartTotal = 0;
   m.cycles = 0;
+  m.runStartMs = 0;
+}
+
+// 总重逻辑触发的冰通道停机：同步软件态，避免后续卡死脱困误触发
+static inline void stopIceByTotalWeight() {
+  // 先统一执行器停机，避免分散路径下同周期又被拉起
+  iceMotorStop();
+  augerMotorStop();
+  stirMotorStop();
+
+  armIceRestartGuard();
+  iceStopByTotalWeight = true;
+  ice_judge = 0;
+  speed_judge = 0;
+  Slowdown_judge = 0;
+  hasIceThisCycle = false;
+  hasIceAThisCycle = false;
+  hasIceBThisCycle = false;
+  motorActive[IDX_ICE] = false;
+  motorActive[IDX_CRUSHED] = false;
+  baseInit_judge[IDX_ICE] = false;
+  baseInit_judge[IDX_CRUSHED] = false;
+  targetWeights[IDX_ICE] = 0;
+  targetWeights[IDX_CRUSHED] = 0;
+  time_check_to_stop[IDX_ICE] = 0;
+  time_check_to_stop[IDX_CRUSHED] = 0;
+  max_time_to_stop[IDX_ICE] = 0;
+  max_time_to_stop[IDX_CRUSHED] = 0;
+  stallReset(stallCrush);
+  stallReset(stallStir);
 }
 
 static inline void enterRev(StallRecover& m, uint32_t nowMs,
@@ -1289,6 +993,16 @@ static void handleStall(StallRecover& m, bool running, uint32_t nowMs,
                         void (*doFwd)(), void (*doRev)()) {
   if (!running) {
     stallReset(m);
+    return;
+  }
+
+  // 首次进入运行期：记录启动时间
+  if (m.runStartMs == 0) {
+    m.runStartMs = nowMs;
+  }
+
+  // 最小运行时间未到：不触发脱困
+  if (m.minRunMs > 0 && (nowMs - m.runStartMs < m.minRunMs)) {
     return;
   }
 
@@ -1342,195 +1056,17 @@ static void handleStall(StallRecover& m, bool running, uint32_t nowMs,
 
 static void checkIceStallRecoveryNew() {
   const uint32_t nowMs = millis();
-  const bool crushRun = motorActive[IDX_CRUSHED];
-  const bool stirRun  = motorActive[IDX_ICE];
-  const bool augerRun = (motorActive[IDX_CRUSHED] || motorActive[IDX_ICE]);
+  if (iceStopByTotalWeight) {
+    stallReset(stallCrush);
+    stallReset(stallStir);
+    return;
+  }
+  // 仅在“真正开始出冰后”才认为电机在运行，避免液体阶段误触发脱困
+  const bool crushRun = motorActive[IDX_CRUSHED] && baseInit_judge[IDX_CRUSHED];
+  const bool stirRun  = motorActive[IDX_ICE] && baseInit_judge[IDX_ICE];
 
   handleStall(stallCrush, crushRun, nowMs, iceMotorForward,  iceMotorReverse);
   handleStall(stallStir,  stirRun,  nowMs, stirMotorForward, stirMotorReverse);
-  // 传送带/螺旋杆：暂时关闭卡死脱困
-  // handleStall(stallAuger, augerRun, nowMs, augerMotorForward, augerMotorReverse);
-}
-
-// 封装好的检测函数：在 loop() 里反复调用
-void checkMotorsMoving() {
-  static unsigned long lastCheckTime = 0;
-
-  unsigned long now = millis();
-  if (now - lastCheckTime < CHECK_INTERVAL_MS) {
-    return;  // 时间未到，直接返回
-  }
-  
-
-  // 读取并清零两个电机在本时间窗口内的计数
-  long c1, c2, c3;
-  noInterrupts();
-  c1 = encoderCount1;
-  c2 = encoderCount2;
-  c3 = stirEncoderCount;
-  encoderCount1 = 0;
-  encoderCount2 = 0;
-  stirEncoderCount = 0;
-  interrupts();
-
-  bool moving1 = (c1 > 1);
-  bool moving3 = (c3 > 1);
-  bool moving2 = (c2 > 3);
-  // Serial.println("---------------");
-  // Serial.println(moving1);
-  // Serial.println(moving2);
-  // Serial.println("---------------");
-
-  // 串口输出状态
-  // Serial.print("M1: ");
-  // Serial.print(moving1 ? "MOVING" : "STOP");
-  // Serial.print("  |  M2: ");
-  // Serial.println(moving2 ? "MOVING" : "STOP");
-  // ===== 传送带霍尔编码器“卡死检测”暂时禁用（按需求注释） =====
-  // 如需恢复，请取消下方整个块注释。
-  /*
-  if(motorActive[0]&&motorActive[1]&&speed_judge){//都为运行状态
-    if(moving1==1&&moving3==1&&moving2==0){//搅冰和碎冰转,螺旋杆不转
-      vTaskSuspend(weightReadTaskHandle);
-      lock_judge=1;
-      relayWrite(relayOffCmd_3[3],8);
-      delay(50);
-      relayWrite(relayOffCmd_3[4],8);//关闭碎冰
-      delay(50);
-      relayWrite(relayOffCmd_ICE_STIR_FWD,8);
-      delay(50);
-      relayWrite(relayOffCmd_ICE_STIR_REV,8);//关闭搅冰
-      delay(50);
-      Serial.println("ice_out_locking");
-      
-      //执行螺旋杆堵的操作//
-      //  ...........................//
-      //
-
-    }
-    else if(moving1==0&&moving3==1&&moving2==1){//碎冰不转,搅冰转，螺旋杆转
-      vTaskSuspend(weightReadTaskHandle);
-      lock_judge=1;
-      relayWrite(relayOffCmd_3[3],8);
-      delay(50);
-      relayWrite(relayOffCmd_3[4],8);//关闭碎冰
-      delay(50);
-      Serial.println("crushed_ice_locking");
-      delay(1000);
-      //执行碎冰堵的操作//
-      for(int i=0;i<3;i++){
-        relayWrite(relayOnCmd_3[3],8);//正转碎冰
-        delay(1000);
-        relayWrite(relayOffCmd_3[3],8);//关闭碎冰
-        delay(50);
-        relayWrite(relayOnCmd_3[4],8);//反转碎冰
-        delay(1000);
-        relayWrite(relayOffCmd_3[4],8);//关闭碎冰
-        delay(50);
-      }  
-    }
-    else if(moving1==1&&moving3==0&&moving2==1){//碎冰转,搅冰bu转，螺旋杆转
-      vTaskSuspend(weightReadTaskHandle);
-      lock_judge=1;
-      relayWrite(relayOffCmd_ICE_STIR_FWD,8);
-      delay(50);
-      relayWrite(relayOffCmd_ICE_STIR_REV,8);//关闭搅冰
-      delay(50);
-      Serial.println("crushed_ice_locking");
-      delay(1000);
-      //执行jiao冰堵的操作//
-      for(int i=0;i<3;i++){
-        relayWrite(relayOnCmd_ICE_STIR_FWD,8);//正转jiao冰
-        delay(1000);
-        relayWrite(relayOffCmd_ICE_STIR_FWD,8);//关闭jiao冰
-        delay(50);
-        relayWrite(relayOnCmd_ICE_STIR_REV,8);//反转jiao冰
-        delay(1000);
-        relayWrite(relayOffCmd_ICE_STIR_REV,8);//关闭jiao冰
-        delay(50);
-      }  
-    }
-    else if(moving1==0&&moving3==0&&moving2==0){//冰机不转,螺旋杆不转
-      vTaskSuspend(weightReadTaskHandle);
-      lock_judge=1;
-      for(int i=0;i<5;i++){
-        relayWrite(relayOffCmd_3[i],8);
-        delay(50);
-        relayWrite(relayOffCmd_ICE_STIR_FWD,8);
-        delay(50);
-        relayWrite(relayOffCmd_ICE_STIR_REV,8);//关闭搅冰
-        delay(50);
-      }
-      Serial.println("locking");
-      //执行冰机堵和螺旋杆堵的操作//
-      //  ...........................//
-      //
-    }
-    if (lock_judge == 1) {
-      lock_judge = 0;
-      // 1. 先执行你的解堵动作
-      relayWrite(relayOffCmd_3[4], 8); 
-      delay(50);
-      relayWrite(relayOnCmd_3[3], 8); // 开启碎冰
-      delay(50);
-      relayWrite(relayOffCmd_ICE_STIR_REV,8);//搅冰反转关闭
-      delay(50);
-      relayWrite(relayOnCmd_ICE_STIR_FWD,8);//搅冰正转开启
-      delay(50);
-      relayWrite(relayOnCmd_3[0], 8);
-      delay(50);
-      relayWrite(relayOffCmd_3[1], 8); // 开启传送带
-
-      // 2. 清零编码器计数，准备“观察窗口”
-      noInterrupts();
-      encoderCount1 = 0;
-      encoderCount2 = 0;
-      stirEncoderCount = 0;
-      interrupts();
-
-      // 3. 给一点时间让电机实际转动（这段时间内中断会不断累加计数）
-      delay(100);  // 这里不需要 5000ms，500ms 一般就够判断是不是在转
-
-      // 4. 读取这段时间内的脉冲数，并清零（下次用）
-  long c1_after, c2_after, c3_after;
-      noInterrupts();
-      c1_after = encoderCount1;
-      c2_after = encoderCount2;
-      c3_after = stirEncoderCount;
-      // Serial.println(encoderCount1);
-      // Serial.println(encoderCount2);
-      encoderCount1 = 0;
-      encoderCount2 = 0;
-      stirEncoderCount = 0;
-      interrupts();
-      
-
-      bool moving1_after = (c1_after > 4);
-      bool moving3_after = (c3_after > 4);
-      bool moving2_after = (c2_after > 7);
-
-      if (moving1_after && moving2_after && moving3_after) {
-        Serial.println("unlock_finish");   // 建议 println，避免和上一行粘在一起
-        delay(500);
-      } else {
-        for (int i = 0; i < 5; i++) {
-          relayWrite(relayOffCmd_3[i], 8);
-          delay(50);
-          relayWrite(relayOffCmd_ICE_STIR_FWD,8);
-          delay(50);
-          relayWrite(relayOffCmd_ICE_STIR_REV,8);//关闭搅冰
-          delay(50);
-        }
-        stopMotor(1);
-        stopMotor(0);
-        speed_judge = 0;
-        Serial.println("locked");
-      }
-      vTaskResume(weightReadTaskHandle);
-    }
-  }
-  */
-  lastCheckTime = now;
 }
 
 
@@ -1901,6 +1437,15 @@ void weightReadTask(void *pvParameters) {
       }
       Serial.println();
     }
+    // 输出实际出料量（用于上位机直接取值）
+    Serial.print("aD:");
+    for (int i = 0; i < deviceCount; i++) {
+      Serial.print(actualDischargeAmounts[i]);
+      if (i < deviceCount-1) {
+        Serial.print(", ");
+      }
+    }
+    Serial.println();
     Serial.print("mA:");
     for (int i = 0; i < deviceCount; i++) {
       Serial.print(motorActive[i]);
@@ -1959,20 +1504,34 @@ static void onDataRecv(const esp_now_recv_info_t* info,const uint8_t* data, int 
   }
 }
 
+inline void liquidOutputOn(uint8_t i) {
+  relayWrite(relayOnCmd[i], 8);
+}
+
+inline void liquidOutputOff(uint8_t i) {
+  relayWrite(relayOffCmd[i], 8);
+}
+
 void stopMotor(int motorIndex) {
   // ===== PATCH: A(冰)/B(碎冰) 通道停止时，必须关闭冰机与传送带等关联继电器 =====
   // 说明：A/B 的启动逻辑使用 relayOnCmd_3[3]/[4]（冰机正反）+ relayOnCmd_3[0]/relayOffCmd_3[1]（传送带）。
   // 原 stopMotor() 走 relayOffCmd[motorIndex] 可能无法真正停掉冰机，因此在此加专用停机。
   if (motorIndex == IDX_ICE) {
-    // A 通道（搅冰电机 7/8）：只停 fsmStir，避免误停 B
-    fsmStir.forceStop();
+    // A 通道（搅冰电机 7/8）
+    stirMotorStop();
+    // 同步关闭传送带/螺旋杆
+    augerMotorStop();
+    armIceRestartGuard();
     motorActive[motorIndex] = false;
     finalizeStopMotorCommon(motorIndex);
     return;
   }
   if (motorIndex == IDX_CRUSHED) {
-    // B 通道（碎冰电机 3/4）：只停 fsmCrush，避免误停 A
-    fsmCrush.forceStop();
+    // B 通道（碎冰电机 3/4）
+    iceMotorStop();
+    // 同步关闭传送带/螺旋杆
+    augerMotorStop();
+    armIceRestartGuard();
     motorActive[motorIndex] = false;
     finalizeStopMotorCommon(motorIndex);
     return;
@@ -2012,6 +1571,11 @@ void finalizeStopMotorCommon(int motorIndex) {
   targetWeights[motorIndex] = 0;
   baselineWeights[motorIndex] = 0;
   weightDiff[motorIndex] = 0;
+  weightDiffPrev[motorIndex] = 0;
+
+  liquidPulseMode[motorIndex] = false;
+  liquidPulseOutputOn[motorIndex] = false;
+  liquidPulseTick[motorIndex] = 0;
   isRecordingDischarge[motorIndex] = true;
   dischargeCompleteTime[motorIndex] = millis();
   lastUpdateTime = 0;
@@ -2108,14 +1672,7 @@ void checkTotalWeight() {
     relayWrite(relayOnCmd_3[2], 8);
     delay(50);
     Serial.println("达到 85%：减速传送带 + （保留冰机运行、其他电机按需要处理）");
-    relayWrite(relayOffCmd_3[4], 8);
-    delay(50);
-    relayWrite(relayOffCmd_3[3], 8);
-    delay(50);
-    relayWrite(relayOffCmd_ICE_STIR_REV,8);//搅冰反转关闭
-    delay(50);
-    relayWrite(relayOnCmd_ICE_STIR_FWD,8);//搅冰正转开启
-    delay(50);
+    stopIceByTotalWeight();
     // SerialRelay.write(relayOffCmd_3[2],8);
     // delay(50);
     stopMotor(13);
@@ -2129,10 +1686,6 @@ void checkTotalWeight() {
     // ice_judge=1;
     Slowdown_judge=0;
 
-    relayWrite(relayOffCmd_3[1], 8);  // com 置常开
-    delay(50);
-    relayWrite(relayOffCmd_3[0], 8);  // com 置常开
-    delay(50);
     relayWrite(relayOffCmd_3[2], 8);  // com 置常开
     delay(50);
     Serial.println("达到 95%：全停（包含传送带与冰机）");
@@ -2143,6 +1696,7 @@ void checkTotalWeight() {
 
     totalStopTriggered = true;
     totalWeightCheckEnabled = false; // 本轮结束
+    stopIceByTotalWeight();
     stopMotor(0);
     stopMotor(1);
     hasIceThisCycle  = false;
@@ -2320,18 +1874,14 @@ void processInputCommand(const String& input) {
 
 void processMasterCommand(const char* command) {
   if (strcmp(command, "stop") == 0) {
+    // 无条件停传送带/螺旋杆，避免 motorActive 未置位导致漏关
+    augerMotorStop();
     for (int i = 0; i < deviceCount; i++) {
       if (motorActive[i] == true){ 
         // Serial.print("Motor ");
         // Serial.print(i+1);
         Serial.println(" stop命令.");
         stopMotor(i);
-        relayWrite(relayOffCmd_3[0], 8);
-        delay(50);
-        relayWrite(relayOffCmd_3[1], 8);   //关闭螺旋杆
-        delay(50);
-        relayWrite(relayOffCmd_3[2], 8);   //关闭螺旋杆
-        delay(50);
         // 关闭冰机（碎冰电机）
         iceMotorStop();
 
@@ -2405,6 +1955,8 @@ void processMasterCommand(const char* command) {
       }
       if (cmdChar >= 'C' && cmdChar <= 'Q' && weight > 0) hasPumpThisCycle = true;  // 目前没有任何用处
       if ((cmdChar == 'A' || cmdChar == 'B') && weight > 0) hasIceThisCycle  = true;
+      if (cmdChar == 'A' && weight > 0) hasIceAThisCycle = true;
+      if (cmdChar == 'B' && weight > 0) hasIceBThisCycle = true;
       
        // 包含A就跳过A，并发“start”给从机   H： 新添加 26-01-26
       if((containsA && cmdChar == 'A')) {
@@ -2459,6 +2011,12 @@ void processMasterCommand(const char* command) {
         handleSugar999(motor);             // 糖满管
         continue;                          // 跳过本通道的常规处理
       }
+
+      // A/B 冰通道：延后到“放行条件满足”时再置 motorActive，避免液体阶段误触发卡死检测
+      if (motorIndex == IDX_ICE || motorIndex == IDX_CRUSHED) {
+        continue;
+      }
+
       motorActive[motorIndex] = true;
       if (motorIndex >= JAM_START && motorIndex <= JAM_END) {
         jamRanThisCycle[motorIndex] = true;
@@ -2466,7 +2024,6 @@ void processMasterCommand(const char* command) {
         Serial.printf("果酱通道: %d\n", jamRanThisCycle[motorIndex]);
       }
       allMotorsInactive = false;
-      
     }
   }
   de_time = millis();
@@ -2574,41 +2131,24 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(STIR_ENC_PIN), stirEncoderISR, RISING);
   attachInterrupt(digitalPinToInterrupt(CLEAN_FLOW_PIN), cleanFlowISR, RISING);
 
-  // ===== PATCH: 三模块独立状态机绑定（含卡死检测/反转解卡/RPM打印） =====
-  // pulsesPerRev 需要按你的实际编码器每转脉冲数修正：
-  // - CRUSH/AUGER 若是单路霍尔/光电：常见 1/2/20 等
-  // - STIR(GPIO35) 若是单个磁铁：通常 1
-  fsmCrush.bind("CRUSH", &encoderTotal1, PULSES_PER_REV_CRUSH, iceMotorStop,  iceMotorForward,  iceMotorReverse);
-  fsmCrush.enableStall = true;
-  fsmAuger.bind("AUGER", &encoderTotal2, PULSES_PER_REV_AUGER, augerMotorStop, augerMotorForward, augerMotorReverse);
-  fsmAuger.enableStall = true;
-  fsmStir.bind ("STIR",  &stirEncoderTotal, PULSES_PER_REV_STIR,  stirMotorStop,  stirMotorForward,  stirMotorReverse);
-  fsmStir.enableStall = true;
-
   // ===== 新版卡死检测：监测源初始化 =====
   stallCrush.tag = "ICE";
   stallCrush.total = &encoderTotal1;
   stallCrush.minPulses = 1;
-  stallCrush.needWins  = 5;
-  stallCrush.winMs     = 150;
+  stallCrush.needWins  = 8;
+  stallCrush.winMs     = 250;
   stallCrush.phaseMs   = 3000;
   stallCrush.maxCycles = 3;
-
-  stallAuger.tag = "AUG";
-  stallAuger.total = &encoderTotal2;
-  stallAuger.minPulses = 1;
-  stallAuger.needWins  = 5;
-  stallAuger.winMs     = 150;
-  stallAuger.phaseMs   = 3000;
-  stallAuger.maxCycles = 3;
+  stallCrush.minRunMs  = 1500;
 
   stallStir.tag = "STIR";
   stallStir.total = &stirEncoderTotal;
   stallStir.minPulses = 1;
-  stallStir.needWins  = 5;
-  stallStir.winMs     = 150;
+  stallStir.needWins  = 10;
+  stallStir.winMs     = 350;
   stallStir.phaseMs   = 3000;
   stallStir.maxCycles = 3;
+  stallStir.minRunMs  = 2000;
 
 
   xTaskCreatePinnedToCore(
@@ -2645,36 +2185,36 @@ static uint32_t idleJamStartMs = 0;
 static bool idleWasActive = false;
 
 // ===== 接近式开关电平变化监测（边沿打印） =====
-static inline void debugProximityEdge() {
-  static int lastEnc1 = -1;
-  static int lastStir = -1;
-  static uint32_t lastPrintMs = 0;
-  const int curEnc1 = digitalRead(ENC1_A_PIN);
-  const int curStir = digitalRead(STIR_ENC_PIN);
-  const uint32_t nowMs = millis();
+// static inline void debugProximityEdge() {
+//   static int lastEnc1 = -1;
+//   static int lastStir = -1;
+//   static uint32_t lastPrintMs = 0;
+//   const int curEnc1 = digitalRead(ENC1_A_PIN);
+//   const int curStir = digitalRead(STIR_ENC_PIN);
+//   const uint32_t nowMs = millis();
 
-  if (lastEnc1 < 0) lastEnc1 = curEnc1;
-  if (lastStir < 0) lastStir = curStir;
+//   if (lastEnc1 < 0) lastEnc1 = curEnc1;
+//   if (lastStir < 0) lastStir = curStir;
 
-  if (curEnc1 != lastEnc1) {
-    Serial.printf("ENC1 change: %d -> %d\n", lastEnc1, curEnc1);
-    lastEnc1 = curEnc1;
-  }
-  if (curStir != lastStir) {
-    Serial.printf("STIR change: %d -> %d\n", lastStir, curStir);
-    lastStir = curStir;
-  }
+//   if (curEnc1 != lastEnc1) {
+//     Serial.printf("ENC1 change: %d -> %d\n", lastEnc1, curEnc1);
+//     lastEnc1 = curEnc1;
+//   }
+//   if (curStir != lastStir) {
+//     Serial.printf("STIR change: %d -> %d\n", lastStir, curStir);
+//     lastStir = curStir;
+//   }
 
-  // 无变化也定时打印（200ms）
-  if (nowMs - lastPrintMs >= 200) {
-    Serial.printf("ENC1 level: %d, STIR level: %d\n", curEnc1, curStir);
-    lastPrintMs = nowMs;
-  }
-}
+//   // 无变化也定时打印（200ms）
+//   if (nowMs - lastPrintMs >= 200) {
+//     Serial.printf("ENC1 level: %d, STIR level: %d\n", curEnc1, curStir);
+//     lastPrintMs = nowMs;
+//   }
+// }
 
 
 void loop() {
-  debugProximityEdge();
+  //debugProximityEdge();
   // checkMotorsMoving();
   // 新版卡死检测（两路接近+一路霍尔）
   checkIceStallRecoveryNew();
@@ -2801,26 +2341,6 @@ void loop() {
 
   
 
-  // 2) 三个独立电机状态机 tick（卡死检测+反转解卡+RPM打印）
-  //    FSM 只在 checkLoops() 放行(baseInit_judge=1)后才会运行
-  // ===== FSM 已全量禁用（按要求） =====
-  // 如需恢复，再启用下方 FSM 调度块。
-  // const uint32_t nowMs = millis();
-  // const bool workA = (motorActive[IDX_ICE]      && baseInit_judge[IDX_ICE]);
-  // const bool workB = (motorActive[IDX_CRUSHED] && baseInit_judge[IDX_CRUSHED]);
-  // const bool iceWorkActive = (workA || workB);
-  // const bool hasIce = (Weights[IDX_CRUSHED] > 1000);
-  // fsmAuger.requestDir(iceWorkActive ? DIR_FWD : DIR_STOP);
-  // fsmCrush.requestDir(workB ? DIR_FWD : DIR_STOP);
-  // if (iceWorkActive) {
-  //   fsmStir.requestDir(workA ? DIR_FWD : DIR_STOP);
-  // } else {
-  //   fsmStir.requestDir(DIR_STOP);
-  // }
-  // fsmCrush.tick(nowMs);
-  // fsmAuger.tick(nowMs);
-  // fsmStir.tick(nowMs);
-
 }
 
 void checkLoops() {
@@ -2837,6 +2357,16 @@ void checkLoops() {
     liftDropStart = 0;
   }
   _allmotorActivePrev = _allmotorActiveNow;
+
+  // 冰通道：只有放行后才标记为运行（避免液体阶段误触发脱困）
+  if (ice_judge == 1 && allPumpsStopped() && !iceStopByTotalWeight && !isIceRestartGuardActive()) {
+    if (hasIceAThisCycle && !motorActive[IDX_ICE]) {
+      motorActive[IDX_ICE] = true;
+    }
+    if (hasIceBThisCycle && !motorActive[IDX_CRUSHED]) {
+      motorActive[IDX_CRUSHED] = true;
+    }
+  }
 
   allMotorsInactive = true;
   for (int i = 0; i < deviceCount; i++) {
@@ -2972,10 +2502,14 @@ void checkLoops() {
             baseInit_judge[i] = true;
             time_check_to_stop[i] = millis();
             max_time_to_stop[i] = calcChannelMaxMs(i, targetWeights[i]);
-            baselineWeights[i]      = Weights[i];
+            baselineWeights[i] = Weights[i];
             beforeDischargeWeights[i] = Weights[i];
 
-            relayWrite(relayOnCmd[i], 8);  // 只让水用这条“通用开启”
+            liquidPulseMode[i] = false;
+            liquidPulseOutputOn[i] = true;   // 刚启动默认连续开
+            liquidPulseTick[i] = millis();
+
+            liquidOutputOn(i);
             delay(50);
             Serial.println("🟢 水路已开启");
           }
@@ -3028,6 +2562,7 @@ void checkLoops() {
         
         if (currentWeight != INVALID_WEIGHT) {
           // **检查重量是否达到目标**
+          weightDiffPrev[i] = weightDiff[i];
           weightDiff[i] = baselineWeights[i] - currentWeight;
      
           if (deviceAddresses[i] == 0x01) { 
@@ -3058,18 +2593,56 @@ void checkLoops() {
               stopMotor(i);
             }
           }
-          else {  // 水 —— 单点检测，达到本路预定重量就停止
-            // weightDiff[i] = baselineWeights[i] - currentWeight;
-            // if (weightDiff[i] >= targetWeights[i]) {
-           if (weightDiff[i] >= (targetWeights[i] - target_diff[i]) ) {
-              // Serial.print("水路达到设定值，停止。通道=");
-              // Serial.print(Weights[i]);
-              // Serial.print(" 实际差值=");
-              // Serial.print(beforeDischargeWeights[i]);
-              // Serial.print(" 目标=");
-              // Serial.println(targetWeights[i]);
+          else {  // 水/液体 —— 末段点动控制
+            // 启动后先给一个最小运行时间，避免刚启动时称重抖动导致误停
+            if (time_check_to_stop[i] != 0 && (millis() - time_check_to_stop[i] < MIN_LIQUID_RUN_MS)) {
+              continue;
+            }
 
-              stopMotor(i);   // 停止当前这一路液体电机
+            int judgeDiff = max(weightDiff[i], weightDiffPrev[i]);
+
+            int stopThreshold  = targetWeights[i] - target_diff[i];
+            int pulseThreshold = stopThreshold - LIQUID_PULSE_MARGIN;
+
+            // 1) 到最终阈值：直接停机
+            if (judgeDiff >= stopThreshold) {
+              stopMotor(i);
+              continue;
+            }
+
+            // 2) 进入末段点动区
+            if (judgeDiff >= pulseThreshold) {
+              if (!liquidPulseMode[i]) {
+                liquidPulseMode[i] = true;
+                liquidPulseOutputOn[i] = false;   // 进入点动区时，先关一下，让尾流先消掉
+                liquidPulseTick[i] = millis();
+                liquidOutputOff(i);
+              }
+
+              unsigned long nowPulse = millis();
+
+              if (liquidPulseOutputOn[i]) {
+                if (nowPulse - liquidPulseTick[i] >= LIQUID_PULSE_ON_MS) {
+                  liquidPulseOutputOn[i] = false;
+                  liquidPulseTick[i] = nowPulse;
+                  liquidOutputOff(i);
+                }
+              } else {
+                if (nowPulse - liquidPulseTick[i] >= LIQUID_PULSE_OFF_MS) {
+                  liquidPulseOutputOn[i] = true;
+                  liquidPulseTick[i] = nowPulse;
+                  liquidOutputOn(i);
+                }
+              }
+            } 
+            else {
+              // 3) 正常区：保持连续开
+              if (liquidPulseMode[i]) {
+                liquidPulseMode[i] = false;
+                liquidPulseOutputOn[i] = true;
+                liquidPulseTick[i] = millis();
+                liquidOutputOn(i);
+              }
             }
           }
         } 
@@ -3117,6 +2690,7 @@ void checkLoops() {
           delay(50);
           relayWrite(relayOffCmd_ICE_STIR_REV,8);
           delay(50);
+          stopIceByTotalWeight();
           time_check_to_stop[i]=0;
           max_time_to_stop[i]=0;
         }
