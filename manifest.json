@@ -1,0 +1,25 @@
+{
+  "latest_version": "1.0.0",
+  "download_url": "https://github.com/TTyyds-art/TTworkspace/releases/download/v1.0.0/app_1.0.0.zip",
+  "sha256": "请填入zip的sha256",
+  "notes": "初始版本",
+  "min_supported_version": "1.0.0",
+  "force_update": false,
+  "channels": {
+    "stable": {
+      "version": "1.0.0",
+      "download_url": "https://github.com/TTyyds-art/TTworkspace/releases/download/v1.0.0/app_1.0.0.zip",
+      "sha256": "请填入zip的sha256"
+    }
+  },
+  "rollout": {
+    "stable": {
+      "version": "1.0.0",
+      "download_url": "https://github.com/TTyyds-art/TTworkspace/releases/download/v1.0.0/app_1.0.0.zip",
+      "sha256": "请填入zip的sha256",
+      "percentage": 100,
+      "start": "2026-03-01T00:00:00+08:00",
+      "end": "2026-12-31T23:59:59+08:00"
+    }
+  }
+}
