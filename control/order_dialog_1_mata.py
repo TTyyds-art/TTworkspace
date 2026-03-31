@@ -53,6 +53,7 @@ class OrderDialog1(QWidget, Ui_Form):
         self.setupUi(self)
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
+        self.init_no_touch_icon()
         self.init_font()
         self.init_ui(tee_bean)
         self.icon_label = QLabel(self)
@@ -227,6 +228,16 @@ class OrderDialog1(QWidget, Ui_Form):
         self.order_number_l.setText(number)
         name = tee_bean.product_name
         self.order_name_l.setText(str(name))
+
+    def init_no_touch_icon(self):
+        target_height = 182
+        pixmap = QPixmap(':/icon/order_dialog_no_touch.png')
+        if not pixmap.isNull():
+            scaled = pixmap.scaledToHeight(target_height, Qt.SmoothTransformation)
+            self.label_2.setPixmap(scaled)
+            self.label_2.setFixedHeight(target_height)
+            self.label_2.setFixedWidth(scaled.width())
+            self.label_2.setStyleSheet("")
 
     def update_icon_position(self):
         progress_value = self.progressBar.value()

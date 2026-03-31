@@ -2,6 +2,8 @@
 py -3.11 -m PyQt5.uic.pyuic .\ui_1080\order_dialog_1_ui.ui -o .\ui_1080_py\Ui_order_dialog_1_ui.py
 
 # 2) 生成资源
+py -3.11 -m PyQt5.pyrcc_main .\drawable\drawable.qrc -o .\drawable_rc.py
+py -3.11 -m PyQt5.pyrcc_main .\drawable\drawable.qrc -o .\drawable\drawable_rc.py
 py -3.11 -m PyQt5.pyrcc_main .\drawable\drawable.qrc -o .\ui_1080_py\resources_rc.py
 
 # 3) 确保 ui_1080_py 是包

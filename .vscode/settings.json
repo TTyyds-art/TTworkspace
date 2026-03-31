@@ -9,5 +9,8 @@
     },
     "files.associations": {
         "i18n/*.ts": "xml"
-    }
+    },
+    "python.analysis.extraPaths": [
+        "./threads"
+    ]
 }

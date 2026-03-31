@@ -20,6 +20,7 @@ import json
 from datetime import date
 from requests.exceptions import HTTPError
 sys.path.append(os.path.join(os.path.dirname(__file__), "control"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "threads"))
 # from material_assign_dialog import MaterialAssignDialog
 from PyQt5.QtWidgets import QDialog
 from PyQt5 import QtGui,QtCore
@@ -27,6 +28,7 @@ from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QSize,QThread,QObject,QEvent,
 from PyQt5.QtGui import QFontDatabase, QFont, QImage, QPixmap
 from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QGridLayout, QScroller, QSizePolicy, QVBoxLayout, QLabel, QMessageBox,QGraphicsOpacityEffect,QProgressDialog,QProgressBar
 from PyQt5 import QtWidgets
+import drawable_rc
 import MenuBtnStyle
 from bean.menu_shopping_cart_bean import MenuShoppingCartBean
 from bean.new_tee_bean import NewTeeBean
@@ -88,6 +90,7 @@ from control.update_util import (
 from control.menu_update_mata import MenuUpdateWidget
 from control.language_settings_mata import LanguageSettingsPage
 from control.language_manager import LanguageManager
+from threads.personal_info_page import PersonalInfoPage
 
 ICE_CHANNELS = set("AB")      # 冰路通道，按你机器实际改
 SUGAR_CANDIDATES = set("CDE") # 配方里可能出现的糖路通道（出现了才按糖量缩放）
@@ -1957,7 +1960,7 @@ class Main1080Window(QWidget, Ui_Form):
         self._daily_clean_channels = [
             "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T"
         ]
-        self._daily_clean_value = 100
+        self._daily_clean_value = 500
         self._daily_clean_pump_delay_ms = 1000
         self._daily_clean_channel_seconds = 30
         self._daily_clean_stop_delay_ms = 1000
@@ -2195,6 +2198,7 @@ class Main1080Window(QWidget, Ui_Form):
         # 初始化设置菜单中的管道界面
         self.init_setting_conduit_widget()
         self.init_language_settings_page()
+        self.init_personal_info_page()
         #串口初始化
         self.init_conduit_serial_thread()###
         # 泡茶控制器（避免登录时 maketee_ctl 未初始化）
@@ -4774,6 +4778,83 @@ class Main1080Window(QWidget, Ui_Form):
         )
         self.stackedWidget_setting.addWidget(self.language_settings_widget)
         self._language_page_created = True
+
+    def init_personal_info_page(self):
+        # 避免重复创建
+        if hasattr(self, "page_personal_info") and self.page_personal_info:
+            return
+
+        self.page_personal_info = PersonalInfoPage()
+
+        # 用主窗口现有登录信息覆盖页面默认值
+        try:
+            if getattr(self, "nickname", ""):
+                self.page_personal_info.user_data["nickname"] = self.nickname
+            if getattr(self, "phone_number", ""):
+                self.page_personal_info.user_data["phone"] = self.phone_number
+                self.page_personal_info.user_data["username"] = self.phone_number
+            self.page_personal_info.load_user_data()
+        except Exception as e:
+            print(f"init_personal_info_page load_user_data error: {e}")
+
+        # 加入“设置页内部”的 stackedWidget_setting
+        self.stackedWidget_setting.addWidget(self.page_personal_info)
+
+        # 返回按钮：回到设置首页
+        self.page_personal_info.btn_back.clicked.connect(self.close_personal_info_page)
+
+        # 刷新按钮：重新从主窗口同步数据到页面
+        self.page_personal_info.btn_refresh.clicked.connect(self.refresh_personal_info_page)
+
+        # 退出登录：调用你现有退出逻辑
+        try:
+            self.page_personal_info.logout_requested.connect(self.on_btn_setting_exit_clicked)
+        except Exception as e:
+            print(f"bind logout_requested error: {e}")
+
+        # “个人信息”入口卡片点击
+        self.wbtn_setting_debug_2.mousePressEvent = self.open_personal_info_page
+
+
+    def refresh_personal_info_page(self):
+        if not hasattr(self, "page_personal_info") or self.page_personal_info is None:
+            return
+
+        try:
+            if getattr(self, "nickname", ""):
+                self.page_personal_info.user_data["nickname"] = self.nickname
+
+            if getattr(self, "phone_number", ""):
+                self.page_personal_info.user_data["phone"] = self.phone_number
+                self.page_personal_info.user_data["username"] = self.phone_number
+
+            self.page_personal_info.load_user_data()
+        except Exception as e:
+            print(f"refresh_personal_info_page error: {e}")
+
+
+    def open_personal_info_page(self, event):
+        self.refresh_personal_info_page()
+        self.stackedWidget_setting.setCurrentWidget(self.page_personal_info)
+
+
+    def close_personal_info_page(self):
+        self.stackedWidget_setting.setCurrentWidget(self.setting_home)
+
+
+    def sync_personal_info_from_page(self):
+        """
+        如果你后面想把 personal_info_page 里的编辑结果同步回主窗口变量，
+        可以在需要时主动调用这个函数。
+        """
+        if not hasattr(self, "page_personal_info") or self.page_personal_info is None:
+            return
+
+        try:
+            self.nickname = self.page_personal_info.user_data.get("nickname", self.nickname)
+            self.phone_number = self.page_personal_info.user_data.get("phone", self.phone_number)
+        except Exception as e:
+            print(f"sync_personal_info_from_page error: {e}")
 
     def _back_from_language_settings(self):
         self.stackedWidget_setting.setCurrentWidget(self.setting_home)
